@@ -9,6 +9,7 @@ import PasswordResetRequestController from "@pages/auth/PasswordResetRequestCont
 import PasswordResetConfirmController from "@pages/auth/PasswordResetConfirmController";
 import EmailVerifyPage from "@pages/auth/EmailVerifyPage";
 import ResendVerificationPage from "@pages/auth/ResendVerificationPage";
+import EmailOtpController from "@pages/auth/EmailOtpController";
 import FeedHomeController from "@pages/feed/FeedHomeController";
 import FeedFollowingController from "@pages/feed/FeedFollowingController";
 import FeedTrendingController from "@pages/feed/FeedTrendingController";
@@ -81,6 +82,11 @@ const router = createBrowserRouter([
           {
             path: "/resend-verification",
             element: <ResendVerificationPage />,
+          },
+          {
+            // 6-digit email OTP step after registration (work order item 3)
+            path: "/verify-otp",
+            element: <EmailOtpController />,
           },
         ],
       },

@@ -1,12 +1,11 @@
 const User = require("../../models/User");
 const validator = require("validator");
-const jwt = require("jsonwebtoken");
 const { asyncHandler } = require('../../middlewares/errorHandler');
 const { ValidationError, ConflictError } = require('../../utils/errors');
 const { sendCreated } = require('../../utils/responseHelpers');
 const sendEmail = require('../../utils/sendEmail');
 const {SEED_PROFILE_PICTURES} = require('../../utils/constants')
-const { getEmailVerificationTemplate } = require('../../utils/emailTemplates');
+const { getOtpEmailTemplate } = require('../../utils/emailTemplates');
 
 /**
  * @route   POST /auth/register
@@ -84,53 +83,43 @@ exports.register = asyncHandler(async (req, res) => {
     throw new ConflictError("Username is already taken", "USERNAME_EXISTS");
   }
 
-  // Create new user
+  // Create new user — it starts UNVERIFIED: the client must complete the
+  // email OTP step (POST /auth/verify-otp) before a JWT is ever issued.
   const newUser = new User({
     email: email.toLowerCase(),
     username: username.toLowerCase(),
     password,
     fullName,
+    isEmailVerified: false,
+    emailVerificationRequired: true, // legacy accounts stay false → unaffected
     //random profile picture from seed profile pictures
     profilePicture: SEED_PROFILE_PICTURES[Math.floor(Math.random() * SEED_PROFILE_PICTURES.length)],
   });
 
-  const verificationToken = newUser.generateEmailVerificationToken();
+  // 6-digit OTP — only its hash + expiry are stored, the plain code is emailed
+  const otp = newUser.generateEmailOtp();
 
   await newUser.save();
 
-  const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-  const verifyLink = `${frontendBaseUrl}/verify-email?token=${verificationToken}`;
-
-  // Send the verification email, but never fail registration because of it:
-  // the user can request a resend from the app.
+  // Send the OTP email, but never fail registration because of it:
+  // the user can request a new code from the verify page.
   try {
     await sendEmail({
       to: newUser.email,
-      subject: 'Verify Your Email - itiHub',
-      html: getEmailVerificationTemplate(verifyLink, newUser.fullName)
+      subject: 'Your itiHub Verification Code',
+      html: getOtpEmailTemplate(otp, newUser.fullName)
     });
   } catch (emailError) {
-    console.error('[register] Verification email send failed:', emailError.message);
+    console.error('[register] OTP email send failed:', emailError.message);
   }
 
-  // Generate JWT token
-  const token = jwt.sign(
-    {
-      userId: newUser._id,
-      email: newUser.email,
-      role: newUser.role,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-
-  // Return user without password
+  // Return user without password — deliberately NO token yet.
   const userObject = newUser.toObject();
   delete userObject.password;
 
   return sendCreated(
     res,
-    { user: userObject, token },
-    "User registered successfully"
+    { user: userObject, email: newUser.email },
+    "Account created. A verification code has been sent to your email."
   );
 });

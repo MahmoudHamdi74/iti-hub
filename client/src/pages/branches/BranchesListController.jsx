@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIntlayer } from 'react-intlayer';
 import {
-  HiOutlineBuildingOffice2,
   HiOutlineAcademicCap,
   HiOutlineUsers,
   HiOutlineMagnifyingGlass,
@@ -18,32 +17,66 @@ const useBranchesContent = () => {
   return (key, fallback = '') => content?.[key]?.value ?? fallback;
 };
 
+// Generic location words that don't identify a city/governorate
+const AREA_STOPWORDS = new Set([
+  'iti', 'branch', 'branches', 'extension', 'core', 'the', 'of', 'in', 'at',
+  'and', 'new', 'main', 'center', 'centre', 'campus', 'governorate',
+]);
+
+const areaTokens = (str) =>
+  String(str || '')
+    .toLowerCase()
+    .split(/[^a-z\u0600-\u06FF]+/)
+    .filter((w) => w.length > 2 && !AREA_STOPWORDS.has(w));
+
+/**
+ * Pick the cover image of the "nearest" branch for a branch that has none
+ * (work order item 7): same city/governorate token first, then same type,
+ * then any branch that has an image.
+ */
+function pickNearbyBranchImage(branch, allBranches) {
+  const withImage = (allBranches || []).filter((b) => b.coverImage && b._id !== branch._id);
+  if (withImage.length === 0) return null;
+
+  const myTokens = new Set([...areaTokens(branch.name), ...areaTokens(branch.location)]);
+  const sameArea = withImage.find((b) =>
+    [...areaTokens(b.name), ...areaTokens(b.location)].some((w) => myTokens.has(w))
+  );
+  if (sameArea) return sameArea.coverImage;
+
+  const sameType = withImage.find((b) => (b.type ?? 'core') === (branch.type ?? 'core'));
+  return sameType?.coverImage ?? withImage[0].coverImage;
+}
+
 /**
  * Single branch card — ink-navy → maroon diagonal header band (the
  * institutional side of the real ITI palette, distinguishing branches
  * from crimson track cards), glass type badge, body with name/location,
  * and a bordered meta footer.
  */
-function BranchListItem({ branch }) {
+function BranchListItem({ branch, allBranches }) {
   const t = useBranchesContent();
   const navigate = useNavigate();
   const isCore = branch.type !== 'extension';
 
+  // No image on this branch? Borrow one from a nearby branch instead of
+  // showing the generic gradient (work order item 7).
+  const coverImage = branch.coverImage || pickNearbyBranchImage(branch, allBranches);
+
   return (
     <button
       type="button"
-      onClick={() => navigate(`/branches/${branch._id}`)}
+      onClick={() => navigate(`/branches/${branch._id}`, { state: { coverImage } })}
       className="group w-full text-left bg-neutral-100 border border-outline rounded-xl overflow-hidden hover:shadow-elevation-3 hover:border-neutral-300 hover:-translate-y-1 transition-all duration-200 cursor-pointer"
     >
-      {/* Gradient header band — ink-navy → maroon diagonal (real ITI identity).
-          When the branch has a Cloudinary cover image it sits under a dark
-          scrim (ink-navy/80) so the badge stays legible; gradient otherwise. */}
+      {/* Header band — the branch photo (own, or borrowed from a nearby
+          branch) under a dark scrim; plain gradient as last resort. The old
+          building icon is gone (work order item 7). */}
       <div className="relative h-28 bg-gradient-to-br from-ink-navy via-ink-navy-800 to-secondary-900 flex items-center justify-center">
-        {/* Branch cover image (Cloudinary) under a dark scrim */}
-        {branch.coverImage && (
+        {coverImage && (
           <>
             <img
-              src={branch.coverImage}
+              src={coverImage}
               alt=""
               aria-hidden="true"
               className="absolute inset-0 h-full w-full object-cover"
@@ -55,7 +88,6 @@ function BranchListItem({ branch }) {
         {/* Decorative rings */}
         <span className="absolute -top-6 ltr:-right-6 rtl:-left-6 w-24 h-24 rounded-full border-[10px] border-white/10" />
         <span className="absolute -bottom-8 ltr:-left-4 rtl:-right-4 w-28 h-28 rounded-full border-[12px] border-black/5" />
-        <HiOutlineBuildingOffice2 className="w-10 h-10 text-white/90 relative" strokeWidth={1.3} />
 
         {/* Type badge — frosted dot-slug chip on the gradient (DESIGN.md glassmorphism) */}
         <Chip
@@ -133,7 +165,7 @@ export default function BranchesListController() {
       <PageBanner
         title={t('title', 'Branches')}
         subtitle={t('subtitle', 'ITI training branches across Egypt — pick a branch to explore its rounds and tracks.')}
-        icon={HiOutlineBuildingOffice2}
+        icon={HiOutlineAcademicCap}
         className="mb-6"
       >
         <div className="relative w-full sm:w-80">
@@ -177,7 +209,7 @@ export default function BranchesListController() {
       ) : branches.length === 0 ? (
         /* Empty state — same card treatment as content cards */
         <div className="bg-neutral-100 border border-outline rounded-xl py-16 px-6 text-center">
-          <HiOutlineBuildingOffice2 className="w-10 h-10 mx-auto text-neutral-500" strokeWidth={1.3} />
+          <HiOutlineAcademicCap className="w-10 h-10 mx-auto text-neutral-500" strokeWidth={1.3} />
           <h2 className="text-heading-5 text-neutral-900 mt-3 mb-1">{t('noBranchesTitle', 'No branches found')}</h2>
           <p className="text-body-2 text-neutral-500">
             {t('noBranchesMessage', 'Try a different search, or check back later.')}
@@ -188,7 +220,7 @@ export default function BranchesListController() {
           {/* Branches grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {branches.map((branch) => (
-              <BranchListItem key={branch._id} branch={branch} />
+              <BranchListItem key={branch._id} branch={branch} allBranches={branches} />
             ))}
           </div>
 

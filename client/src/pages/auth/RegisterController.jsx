@@ -219,10 +219,10 @@ export default function RegisterController() {
       },
       {
         onSuccess: (response) => {
-          const { token, user } = response.data.data;
-          setToken(token);
-          setUser(user);
-          navigate("/");
+          // The server no longer returns a token at registration — the user
+          // must verify the 6-digit OTP emailed to them first (work order 3).
+          const email = response.data.data?.email || formData.email;
+          navigate("/verify-otp", { state: { email } });
         },
         onError: (error) => {
           const errorCode = error.response?.data?.error?.code;

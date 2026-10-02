@@ -36,6 +36,15 @@ exports.login = asyncHandler(async (req, res) => {
     throw new ForbiddenError('Your account has been blocked', 'ACCOUNT_BLOCKED');
   }
 
+  // Accounts created through the email + OTP flow must verify their email
+  // before logging in. Legacy accounts (flag absent/false) are unaffected.
+  if (user.emailVerificationRequired && !user.isEmailVerified) {
+    throw new ForbiddenError(
+      'Please verify your email first. Check your inbox for the verification code.',
+      'EMAIL_NOT_VERIFIED'
+    );
+  }
+
   // Update lastSeen timestamp
   user.lastSeen = new Date();
   await user.save();

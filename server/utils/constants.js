@@ -16,6 +16,9 @@ const SENSITIVE_USER_FIELDS = [
   'password',
   'resetPasswordToken',
   'resetPasswordExpires',
+  'emailVerificationToken',
+  'emailVerificationExpires',
+  'emailVerificationRequired',
   'googleId',
   'isBlocked',
   'blockReason'
@@ -24,6 +27,7 @@ const SENSITIVE_USER_FIELDS = [
 // Fields allowed in profile updates
 const UPDATABLE_PROFILE_FIELDS = [
   'fullName',
+  'username',
   'bio',
   'profilePicture',
   'coverImage',
