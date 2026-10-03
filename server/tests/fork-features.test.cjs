@@ -58,6 +58,7 @@ test('registration OTP, username updates, and branch covers', async (t) => {
   const token = loggedIn.body.data.token;
   const update = body => request(app).patch('/users/me').set('Authorization', `Bearer ${token}`).send(body);
   assert.equal((await update({ username: 'New_Name' })).body.data.username, 'new_name');
+  assert.equal((await User.findOne({ email: account.email }).lean()).username, 'new_name');
   await User.create({ ...account, email: 'taken@example.com', username: 'taken_name' });
   const taken = await update({ username: 'TAKEN_NAME' });
   assert.equal(taken.status, 409);

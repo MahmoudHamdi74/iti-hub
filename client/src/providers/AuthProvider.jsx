@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useIntlayer } from 'react-intlayer';
 import { useAuthStore } from '@store/auth';
 import api from '@/lib/api';
+import { disconnectSocket } from '@/lib/socket';
 
 export default function AuthProvider({ children }) {
   const content = useIntlayer('authProvider');
@@ -16,6 +17,9 @@ export default function AuthProvider({ children }) {
     clearAuthError,
     logout,
   } = useAuthStore();
+  useEffect(() => {
+    if (!token) disconnectSocket();
+  }, [token]);
 
   // Initial token verification (startup only)
   useEffect(() => {

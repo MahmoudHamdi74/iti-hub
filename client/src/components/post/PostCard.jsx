@@ -38,7 +38,7 @@ import ConfirmDialog from '@components/common/ConfirmDialog';
  * @param {Function} [props.onPostClick] - Handler for post click navigation
  * @param {string} [props.className] - Additional CSS classes
  */
-const PostCard = React.memo(({ post, onPostClick, isCommentsExpanded = false, className = '' }) => {
+const AvailablePostCard = React.memo(({ post, onPostClick, isCommentsExpanded = false, className = '' }) => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { requireAuth } = useRequireAuth();
@@ -364,6 +364,13 @@ const PostCard = React.memo(({ post, onPostClick, isCommentsExpanded = false, cl
   );
 });
 
-PostCard.displayName = 'PostCard';
+AvailablePostCard.displayName = 'AvailablePostCard';
+
+// Populated authors become null when an account is removed. Keep the guard
+// outside the stateful component so transitions do not change hook order.
+function PostCard(props) {
+  if (!props.post?.author?._id) return <UnavailablePost className={props.className} />;
+  return <AvailablePostCard {...props} />;
+}
 
 export { PostCard };

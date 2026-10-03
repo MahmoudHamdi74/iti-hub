@@ -1,5 +1,7 @@
 import { createBrowserRouter, RouterProvider, Navigate, useParams } from "react-router-dom";
 import Layout from "@/layout/layout";
+import RouteShell from '@/layout/RouteShell';
+import RouteError from '@components/routes/RouteError';
 import AuthLayout from "@/layout/AuthLayout";
 import ProtectedRoute from "@components/routes/ProtectedRoute";
 import PublicRoute from "@components/routes/PublicRoute";
@@ -45,6 +47,7 @@ const LegacyTrackDetailRedirect = () => {
 };
 
 const router = createBrowserRouter([
+  { element: <RouteShell />, errorElement: <RouteError />, children: [
   {
     element: <AuthLayout />,
     children: [
@@ -255,6 +258,7 @@ const router = createBrowserRouter([
       },
     ],
   },
+  ] },
 ]);
 
 export function AppRoutes() {

@@ -54,7 +54,7 @@ export const useSocket = () => {
    * Initialize socket when user is authenticated
    */
   useEffect(() => {
-    if (token && isAuthenticated && !socket) {
+    if (token && isAuthenticated && (!socket || socket.auth?.token !== token)) {
       if (import.meta.env.DEV) {
         console.log('[useSocket] Initializing socket with auth token');
       }

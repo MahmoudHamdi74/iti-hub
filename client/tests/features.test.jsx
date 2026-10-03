@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import Lightbox from '../src/components/common/Lightbox';
 import ProfileSettings from '../src/pages/settings/ProfileSettings';
 import EmailOtpController from '../src/pages/auth/EmailOtpController';
+import { toast } from 'react-hot-toast';
 
 const mocks = vi.hoisted(() => ({
   update: vi.fn().mockResolvedValue({ data: { data: { username: 'new_name' } } }),
@@ -49,6 +50,16 @@ test('saves the requested username even when availability is still pending', asy
   fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'new_name' } });
   fireEvent.submit(screen.getByLabelText('Username').closest('form'));
   await waitFor(() => expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ username: 'new_name' })));
+});
+
+test('does not report success when an older API silently ignores the username', async () => {
+  mocks.update.mockResolvedValueOnce({ data: { data: { username: 'old_name' } } });
+  render(<ProfileSettings user={{ username: 'old_name', fullName: 'Test User' }} />);
+  fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'new_name' } });
+  fireEvent.submit(screen.getByLabelText('Username').closest('form'));
+  await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('did not save')));
+  expect(toast.success).not.toHaveBeenCalled();
+  expect(mocks.setUser).not.toHaveBeenCalled();
 });
 
 test('uploaded profile photo can be shared to the feed', async () => {
