@@ -7,6 +7,7 @@ import { PostHeader } from './PostHeader';
 import { PostContent } from './PostContent';
 import { PostInteractions } from './PostInteractions';
 import ConfirmDialog from '@components/common/ConfirmDialog';
+import UnavailablePost from './UnavailablePost';
 
 /**
  * RepostContainer - Container component for reposts using unified PostHeader
@@ -31,7 +32,7 @@ import ConfirmDialog from '@components/common/ConfirmDialog';
  * @param {Function} [props.onPostClick] - Handler for post click navigation
  * @param {string} [props.className] - Additional CSS classes
  */
-export function RepostContainer({ repost, originalPost, onPostClick, className = '' }) {
+function AvailableRepostContainer({ repost, originalPost, onPostClick, className = '' }) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
@@ -231,10 +232,10 @@ export function RepostContainer({ repost, originalPost, onPostClick, className =
           {/* Original Post Content */}
           <div className="mt-3">
             <PostContent
-              community={originalPost.community}
-              content={originalPost.content}
-              images={originalPost.images}
-              tags={originalPost.tags}
+              community={originalPost?.community}
+              content={originalPost?.content}
+              images={originalPost?.images}
+              tags={originalPost?.tags}
               onCommunityClick={handleCommunityClick}
             />
           </div>
@@ -268,4 +269,9 @@ export function RepostContainer({ repost, originalPost, onPostClick, className =
       />
     </article>
   );
+}
+
+export function RepostContainer(props) {
+  if (!props.repost?.author?._id) return <UnavailablePost className={props.className} />;
+  return <AvailableRepostContainer {...props} />;
 }

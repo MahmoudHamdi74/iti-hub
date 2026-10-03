@@ -28,9 +28,9 @@ export default function Layout() {
     document.addEventListener('keydown', closeOnEscape);
     return () => document.removeEventListener('keydown', closeOnEscape);
   }, [menuOpen]);
-  const links = menuItems.filter(item => item.isPublic || isAuthenticated);
+  const links = menuItems;
   const mobileLinks = ['home', 'messages', 'notifications', 'communities'].map(id => menuItems.find(item => item.id === id)).filter(Boolean);
-  const navigation = (mobile = false) => links.map(item => <NavLink onClick={() => setMenuOpen(false)} key={item.id} to={item.path} end={item.end} title={content[item.labelKey]?.value} className={({ isActive }) => `flex items-center gap-4 rounded-full px-4 py-3 hover:bg-neutral-100 ${isActive ? 'font-bold text-primary-600' : 'text-neutral-800'} ${mobile ? 'text-base' : 'text-xl'}`}><item.icon className="h-6 w-6 shrink-0" /><span className={mobile ? '' : 'hidden xl:inline'}>{content[item.labelKey]}</span></NavLink>);
+  const navigation = (mobile = false) => links.map(item => <NavLink onClick={event => { setMenuOpen(false); if (!item.isPublic && !isAuthenticated) { event.preventDefault(); requireAuth(); } }} key={item.id} to={item.path} end={item.end} title={content[item.labelKey]?.value} className={({ isActive }) => `flex items-center gap-4 rounded-full px-4 py-3 hover:bg-neutral-100 ${isActive ? 'font-bold text-primary-600' : 'text-neutral-800'} ${mobile ? 'text-base' : 'text-xl'}`}><item.icon className="h-6 w-6 shrink-0" /><span className={mobile ? '' : 'hidden xl:inline'}>{content[item.labelKey]}</span></NavLink>);
   return <div className="min-h-screen bg-neutral-50 text-neutral-900">
     <header className="sticky top-0 z-30 border-b border-outline bg-neutral-50 lg:hidden">
       <div className="flex h-16 items-center justify-between px-4">

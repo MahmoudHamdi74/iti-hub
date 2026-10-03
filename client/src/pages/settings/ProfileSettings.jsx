@@ -92,8 +92,15 @@ export default function ProfileSettings({ user }) {
       if (location) updates.location = location.trim();
 
       const result = await updateProfileMutation.mutateAsync(updates);
-      if (result.data?.data) {
-        setUser(result.data.data);
+      const savedUser = result.data?.data;
+      // Older API deployments silently ignored username in their field allowlist.
+      // A 200 response alone must not show success for an unchanged username.
+      if (updates.username && savedUser?.username !== updates.username) {
+        toast.error('The server did not save your username. Please try again after the server is updated.');
+        return;
+      }
+      if (savedUser) {
+        setUser(savedUser);
       }
       toast.success(content.saveSuccess.value);
     } catch (err) {

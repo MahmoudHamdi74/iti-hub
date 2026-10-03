@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useIntlayer } from "react-intlayer";
+import { registerGoogleIdentity } from '@/lib/googleIdentity';
 
 // Single global promise for the GIS script — shared across button mounts
 let gisScriptPromise = null;
@@ -17,6 +18,7 @@ function loadGoogleScript() {
       const existing = document.getElementById("google-gis-script");
       if (existing) {
         existing.addEventListener("load", () => resolve(window.google), { once: true });
+        existing.addEventListener("error", () => { gisScriptPromise = null; existing.remove(); resolve(null); }, { once: true });
         return;
       }
 
@@ -26,7 +28,7 @@ function loadGoogleScript() {
       script.async = true;
       script.defer = true;
       script.onload = () => resolve(window.google);
-      script.onerror = () => resolve(null);
+      script.onerror = () => { gisScriptPromise = null; script.remove(); resolve(null); };
       document.head.appendChild(script);
     });
   }
@@ -46,8 +48,10 @@ function loadGoogleScript() {
 export default function GoogleSignInButton({ onSuccess, onError, disabled = false }) {
   const t = useIntlayer('authGoogle');
   const buttonRef = useRef(null);
+  const subscriptionRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [configured, setConfigured] = useState(true);
+  const [failed, setFailed] = useState(false);
 
   // Keep the latest callbacks in refs so the GIS callback never goes stale
   const onSuccessRef = useRef(onSuccess);
@@ -66,17 +70,12 @@ export default function GoogleSignInButton({ onSuccess, onError, disabled = fals
     let cancelled = false;
 
     loadGoogleScript().then((google) => {
-      if (cancelled || !google?.accounts?.id) return;
+      if (cancelled) return;
+      if (!google?.accounts?.id) { setFailed(true); return; }
 
-      google.accounts.id.initialize({
-        client_id: clientId,
-        callback: (response) => {
-          if (response?.credential) {
-            onSuccessRef.current?.(response.credential);
-          } else {
-            onErrorRef.current?.(new Error("Google Sign-In returned no credential"));
-          }
-        },
+      subscriptionRef.current = registerGoogleIdentity(google.accounts.id, clientId, {
+        success: credential => onSuccessRef.current?.(credential),
+        error: error => onErrorRef.current?.(error),
       });
 
       setReady(true);
@@ -84,6 +83,8 @@ export default function GoogleSignInButton({ onSuccess, onError, disabled = fals
 
     return () => {
       cancelled = true;
+      subscriptionRef.current?.release();
+      subscriptionRef.current = null;
     };
   }, [clientId]);
 
@@ -98,6 +99,7 @@ export default function GoogleSignInButton({ onSuccess, onError, disabled = fals
       renderedWidth = width;
       host.replaceChildren();
       window.google.accounts.id.renderButton(host, {
+      click_listener: () => subscriptionRef.current?.activate(),
       type: "standard",
       theme: "outline",
       size: "large",
@@ -118,6 +120,7 @@ export default function GoogleSignInButton({ onSuccess, onError, disabled = fals
   }
 
   return (
+    <div className="space-y-2">
     <div
       className={`flex justify-center transition-opacity ${
         disabled ? "opacity-50 pointer-events-none" : ""
@@ -125,7 +128,7 @@ export default function GoogleSignInButton({ onSuccess, onError, disabled = fals
       role="button"
       aria-label={t.buttonLabel.value}
     >
-      {!ready && (
+      {!ready && !failed && (
         <div className="h-10 w-full max-w-[320px] animate-pulse rounded-full bg-neutral-200" />
       )}
       <div
@@ -134,6 +137,10 @@ export default function GoogleSignInButton({ onSuccess, onError, disabled = fals
         style={{ visibility: ready ? "visible" : "hidden" }}
         data-testid="google-sign-in-button"
       />
+    </div>
+    <p className="text-center text-xs text-neutral-500" role={failed ? 'status' : undefined}>
+      {failed ? t.errorUnavailable : t.popupHelp}
+    </p>
     </div>
   );
 }

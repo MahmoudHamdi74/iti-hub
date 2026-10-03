@@ -21,7 +21,7 @@ let socketInstance = null;
  */
 export const initializeSocket = (authToken) => {
   // If socket already exists and is connected, return it
-  if (socketInstance?.connected) {
+  if (socketInstance && socketInstance.auth?.token === authToken) {
     if (import.meta.env.DEV) {
       console.log('[Socket] Already connected, reusing existing socket');
     }
@@ -34,9 +34,10 @@ export const initializeSocket = (authToken) => {
     socketInstance.close();
   }
 
-  const socketURL = import.meta.env.VITE_SOCKET_URL || 
-                   import.meta.env.VITE_API_BASE_URL || 
-                   'http://localhost:3030';
+  const socketURL = import.meta.env.VITE_SOCKET_URL || new URL(
+    import.meta.env.VITE_API_BASE_URL || 'http://localhost:3030',
+    window.location.origin,
+  ).origin;
 
   if (import.meta.env.DEV) {
     console.log('[Socket] Initializing connection to:', socketURL);

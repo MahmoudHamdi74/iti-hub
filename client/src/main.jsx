@@ -4,7 +4,6 @@ import App from './App.jsx'
 import { IntlayerProvider } from 'react-intlayer'
 import QueryProvider from './providers/QueryProvider.jsx'
 import AuthProvider from './providers/AuthProvider.jsx'
-import LoginRequiredModal from './components/auth/LoginRequiredModal.jsx'
 import { Toaster } from 'react-hot-toast'
 
 createRoot(document.getElementById('root')).render(
@@ -13,7 +12,6 @@ createRoot(document.getElementById('root')).render(
             <AuthProvider>
                     <App />
                     <Toaster position="bottom-right" />
-                    <LoginRequiredModal />
             </AuthProvider>
         </QueryProvider>
     </IntlayerProvider>

@@ -52,8 +52,9 @@ export default function CommentItem({
   const updateComment = useUpdateComment();
   const deleteComment = useDeleteComment();
   const toggleCommentLike = useToggleCommentLike();
-  const isOwnComment = user?._id === comment.author._id;
-  const isOwnPost = user?._id === authorId;
+  const authorName = comment.author?.fullName || (locale === 'ar' ? 'حساب محذوف' : 'Deleted account');
+  const isOwnComment = Boolean(user?._id) && user._id === comment.author?._id;
+  const isOwnPost = Boolean(user?._id) && user._id === authorId;
 
   // Local state for optimistic updates
   const [likeState, setLikeState] = useState({
@@ -72,6 +73,7 @@ export default function CommentItem({
   const replies = repliesData?.pages.flatMap(page => page.data.comments) ?? [];
 
   const handleProfileClick = (username) => {
+    if (!username) return;
     navigate(`/profile/${username}`);
   };
 
@@ -189,19 +191,19 @@ export default function CommentItem({
   return (
     <div className="flex gap-3" id={`comment-${comment._id}`}>
       <img
-        src={comment.author.profilePicture || "/default-avatar.png"}
-        alt={comment.author.fullName}
+        src={comment.author?.profilePicture || "/default-avatar.png"}
+        alt={authorName}
         className="w-8 h-8 rounded-full cursor-pointer object-cover shrink-0"
-        onClick={() => handleProfileClick(comment.author.username)}
+        onClick={() => handleProfileClick(comment.author?.username)}
       />
       <div className="flex-1 min-w-0">
         <div className="bg-neutral-50 rounded-lg p-3 shadow-elevation-1">
           <div className="flex items-start justify-between">
             <button
-              onClick={() => handleProfileClick(comment.author.username)}
+              onClick={() => handleProfileClick(comment.author?.username)}
               className="text-body-2 font-semibold hover:underline"
             >
-              {comment.author.fullName}
+              {authorName}
             </button>
 
             {/* Edit/Delete Menu */}
@@ -306,7 +308,7 @@ export default function CommentItem({
               parentCommentId={comment._id}
               onSubmit={handleReplySubmit}
               onCancel={onCancelReply}
-              placeholder={`Reply to ${comment.author.fullName}...`}
+              placeholder={`Reply to ${authorName}...`}
             />
           </div>
         )}
@@ -328,18 +330,18 @@ export default function CommentItem({
             {replies.map((reply) => (
               <div key={reply._id} className="flex gap-2">
                 <img
-                  src={reply.author.profilePicture || "/default-avatar.png"}
-                  alt={reply.author.fullName}
+                  src={reply.author?.profilePicture || "/default-avatar.png"}
+                  alt={reply.author?.fullName || (locale === 'ar' ? 'حساب محذوف' : 'Deleted account')}
                   className="w-6 h-6 rounded-full cursor-pointer object-cover shrink-0"
-                  onClick={() => handleProfileClick(reply.author.username)}
+                  onClick={() => handleProfileClick(reply.author?.username)}
                 />
                 <div className="flex-1 min-w-0">
                   <div className="bg-neutral-50 rounded-lg p-2 shadow-elevation-1">
                     <button
-                      onClick={() => handleProfileClick(reply.author.username)}
+                      onClick={() => handleProfileClick(reply.author?.username)}
                       className="text-caption font-semibold hover:underline"
                     >
-                      {reply.author.fullName}
+                      {reply.author?.fullName || (locale === 'ar' ? 'حساب محذوف' : 'Deleted account')}
                     </button>
                     <p className="text-caption text-neutral-900 mt-1 whitespace-pre-wrap wrap-break-word">
                       {reply.content}

@@ -9,6 +9,7 @@ import { UserAvatar } from '@/components/user/UserAvatar';
 import { UserInfo } from '@/components/user/UserInfo';
 import { PostMenu } from './PostMenu';
 import { TextContent } from '@/components/shared/TextContent';
+import UnavailablePost from './UnavailablePost';
 
 dayjs.extend(relativeTime);
 
@@ -82,7 +83,8 @@ export function PostHeader({
   // Set dayjs locale
   dayjs.locale(locale);
 
-  const isOwnPost = user?._id === post.author._id;
+  if (!post?.author?._id) return <UnavailablePost variant="compact" />;
+  const isOwnPost = Boolean(user?._id) && user._id === post.author._id;
   const showMenu = onEdit || onDelete || onSave; // Show menu if any action is available
 
   return (
