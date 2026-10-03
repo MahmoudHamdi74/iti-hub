@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: '/api',
-  userClientUrl: '/',
+  apiUrl: 'https://iti-hub-production.up.railway.app',
+  userClientUrl: 'https://itihub.vercel.app',
   defaultLanguage: 'en'
 };
