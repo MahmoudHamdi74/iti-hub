@@ -34,6 +34,9 @@ test('registration OTP, username updates, and branch covers', async (t) => {
   assert.equal(registered.body.data.token, undefined);
   assert.equal(registered.body.data.user.emailVerificationToken, undefined);
   assert.equal(registered.body.data.user.emailVerificationExpires, undefined);
+  assert.equal((await post('/auth/register', account)).body.error.code, 'EMAIL_VERIFICATION_REQUIRED');
+  assert.equal((await post('/auth/check-email', { email: ' REVIEW@EXAMPLE.COM ' })).body.data.requiresVerification, true);
+  assert.equal((await post('/auth/check-username', { username: ' REVIEWER ' })).body.data.available, false);
   assert.equal(emails[0].to, account.email);
   assert.equal((await post('/auth/login', account)).body.error.code, 'EMAIL_NOT_VERIFIED');
   const firstCode = latestCode();
@@ -55,6 +58,7 @@ test('registration OTP, username updates, and branch covers', async (t) => {
   assert.equal((await post('/auth/verify-otp', { email: account.email, otp: code })).status, 400);
   const loggedIn = await post('/auth/login', account);
   assert.equal(loggedIn.status, 200);
+  assert.equal((await post('/auth/register', account)).body.error.code, 'EMAIL_EXISTS');
   const token = loggedIn.body.data.token;
   const update = body => request(app).patch('/users/me').set('Authorization', `Bearer ${token}`).send(body);
   assert.equal((await update({ username: 'New_Name' })).body.data.username, 'new_name');

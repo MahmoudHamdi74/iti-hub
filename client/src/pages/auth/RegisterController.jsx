@@ -28,6 +28,11 @@ export default function RegisterController() {
   const navigate = useNavigate();
   const { setToken, setUser } = useAuthStore();
   const debounceRef = useRef(null);
+  const usernameRequestRef = useRef(0);
+  useEffect(() => () => {
+    clearTimeout(debounceRef.current);
+    usernameRequestRef.current += 1;
+  }, []);
 
 
   // Multi-step state
@@ -46,6 +51,7 @@ export default function RegisterController() {
   // Validation & UI state
   const [errors, setErrors] = useState({});
   const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [usernameSuggestions, setUsernameSuggestions] = useState([]);
   const [cooldown, setCooldown] = useState(null);
 
@@ -87,8 +93,10 @@ export default function RegisterController() {
   // Check username availability with debounce
   const checkUsernameDebounced = useCallback(
   (username) => {
+    const requestId = ++usernameRequestRef.current;
     clearTimeout(debounceRef.current);
     setUsernameAvailable(null);
+    setIsCheckingUsername(false);
 
     if (!username || username.length < 3) return;
 
@@ -113,17 +121,23 @@ export default function RegisterController() {
     }
 
     setErrors((prev) => ({ ...prev, username: null }));
+    setIsCheckingUsername(true);
 
     debounceRef.current = setTimeout(() => {
       checkUsernameMutation.mutate(
         { username },
         {
           onSuccess: (response) => {
+            if (requestId !== usernameRequestRef.current) return;
             setUsernameAvailable(response.data?.data?.available ?? null);
+            setIsCheckingUsername(false);
             debounceRef.current = null;
           },
           onError: () => {
+            if (requestId !== usernameRequestRef.current) return;
             setUsernameAvailable(null);
+            setIsCheckingUsername(false);
+            debounceRef.current = null;
           },
         }
       );
@@ -135,16 +149,8 @@ export default function RegisterController() {
 
   // Update form data
   const handleChange = (updates) => {
-    setFormData((prev) => {
-      const newData = { ...prev, ...updates };
-
-      // If username changed, check availability
-      if (updates.username !== undefined) {
-        checkUsernameDebounced(updates.username);
-      }
-
-      return newData;
-    });
+    if (updates.username !== undefined) checkUsernameDebounced(updates.username);
+    setFormData((prev) => ({ ...prev, ...updates }));
   };
 
   // Step 1: Check email availability
@@ -159,6 +165,10 @@ export default function RegisterController() {
       {
         onSuccess: (response) => {
           const available = response.data?.data?.available;
+          if (response.data?.data?.requiresVerification) {
+            navigate('/verify-otp', { state: { email: formData.email.trim().toLowerCase() } });
+            return;
+          }
           if (available) {
             // Generate username suggestions
             const suggestions = generateUsernameSuggestions(formData.email);
@@ -178,8 +188,8 @@ export default function RegisterController() {
 
   // Step 2: Proceed to profile
   const handleStepTwoNext = () => {
-    if (!formData.username || usernameAvailable === false) {
-      setErrors({ username: t.errorUsernameInvalid });
+    if (!validateUsername(formData.username).valid || usernameAvailable === false) {
+      setErrors({ username: usernameAvailable === false ? t.errorUsernameTaken : t.errorUsernameInvalid });
       return;
     }
 
@@ -227,15 +237,17 @@ export default function RegisterController() {
         onError: (error) => {
           const errorCode = error.response?.data?.error?.code;
 
-          if (errorCode === "TOO_MANY_REQUESTS") {
+          if (errorCode === 'EMAIL_VERIFICATION_REQUIRED') {
+            navigate('/verify-otp', { state: { email: formData.email.trim().toLowerCase() } });
+          } else if (errorCode === "TOO_MANY_REQUESTS") {
             const cooldownEnd = Date.now() + COOLDOWN_DURATION;
             localStorage.setItem(COOLDOWN_KEY, cooldownEnd.toString());
             setCooldown(cooldownEnd);
-          } else if (errorCode === "EMAIL_TAKEN") {
+          } else if (errorCode === "EMAIL_EXISTS" || errorCode === "EMAIL_TAKEN") {
             setErrors({ email: t.errorEmailTaken });
             setCurrentStep(1);
-          } else if (errorCode === "USERNAME_TAKEN") {
-            setErrors({ username: t.errorUsernameInvalid });
+          } else if (errorCode === "USERNAME_EXISTS" || errorCode === "USERNAME_TAKEN") {
+            setErrors({ username: t.errorUsernameTaken });
             setCurrentStep(2);
           }
         },
@@ -336,7 +348,7 @@ export default function RegisterController() {
             onNext={handleStepTwoNext}
             onBack={() => setCurrentStep(1)}
             available={usernameAvailable}
-            checking={checkEmailMutation.isPending || debounceRef.current}
+            checking={isCheckingUsername}
             suggestions={usernameSuggestions}
             onSelectSuggestion={handleSelectSuggestion}
           />

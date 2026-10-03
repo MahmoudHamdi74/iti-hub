@@ -14,6 +14,7 @@ test('Google initializes once across login/register mounts and uses current call
   const signup = { success: vi.fn(), error: vi.fn() };
   const second = registerGoogleIdentity(api, 'client-id', signup);
   expect(api.initialize).toHaveBeenCalledTimes(1);
+  expect(api.initialize.mock.calls[0][0].use_fedcm_for_button).toBe(true);
   api.initialize.mock.calls[0][0].callback({ credential: 'test-credential' });
   expect(signup.success).toHaveBeenCalledWith('test-credential');
   expect(login.success).not.toHaveBeenCalled();

@@ -2,6 +2,8 @@ const authRoute = require("express").Router();
 const rateLimit = require("express-rate-limit");
 const User = require("../models/User");
 const {sendSuccess} = require("../utils/responseHelpers")
+const { asyncHandler } = require('../middlewares/errorHandler');
+const { ValidationError } = require('../utils/errors');
 const {checkAuth} = require("../middlewares/checkAuth");
 const {resendVerificationEmail} = require("../controllers/auth/emailVerificationController");
 
@@ -72,23 +74,25 @@ authRoute.get("/resend-verification", checkAuth, resendVerificationEmail);
 // Email OTP verification (new registrations)
 authRoute.post("/verify-otp", otpLimiter, verifyOtp);
 authRoute.post("/resend-otp", otpLimiter, resendOtp);
-authRoute.post("/check-username", async (req, res) => {
-  const { username } = req.body;
+authRoute.post("/check-username", asyncHandler(async (req, res) => {
+  const username = typeof req.body.username === 'string' ? req.body.username.trim().toLowerCase() : '';
+  if (!/^[a-z0-9_]{3,30}$/.test(username)) throw new ValidationError('Username must contain 3-30 letters, numbers, or underscores');
   const user = await User.findOne({ username });
   if (user) {
     sendSuccess(res, { available: false });
   } else {
     sendSuccess(res, { available: true });
   }
-});
-authRoute.post("/check-email", async (req, res) => {
-  const { email } = req.body;
+}));
+authRoute.post("/check-email", asyncHandler(async (req, res) => {
+  const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  if (!require('validator').isEmail(email)) throw new ValidationError('A valid email is required');
   const user = await User.findOne({ email });
   if (user) {
-    sendSuccess(res, { available: false });
+    sendSuccess(res, { available: false, requiresVerification: Boolean(user.emailVerificationRequired && !user.isEmailVerified && !user.isBlocked) });
   } else {
     sendSuccess(res, { available: true });
   }
-});
+}));
 
 module.exports = authRoute;

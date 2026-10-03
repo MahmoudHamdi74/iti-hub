@@ -125,8 +125,7 @@ export default function GoogleSignInButton({ onSuccess, onError, disabled = fals
       className={`flex justify-center transition-opacity ${
         disabled ? "opacity-50 pointer-events-none" : ""
       }`}
-      role="button"
-      aria-label={t.buttonLabel.value}
+      data-no-lightbox
     >
       {!ready && !failed && (
         <div className="h-10 w-full max-w-[320px] animate-pulse rounded-full bg-neutral-200" />

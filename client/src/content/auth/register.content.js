@@ -40,8 +40,8 @@ export default {
       ar: "اسم المستخدم",
     }),
     usernameHint: t({
-      en: "3-20 characters, letters, numbers, underscore and dash only",
-      ar: "3-20 حرفًا، أحرف وأرقام وشرطة سفلية وشرطة فقط",
+      en: "3-30 characters, letters, numbers and underscores only",
+      ar: "3-30 حرفًا، أحرف وأرقام وشرطة سفلية فقط",
     }),
     suggestionsTitle: t({
       en: "Suggestions:",
@@ -108,8 +108,8 @@ export default {
       ar: "8 أحرف على الأقل",
     }),
     policyLetter: t({
-      en: "At least one letter",
-      ar: "حرف واحد على الأقل",
+      en: "At least one lowercase letter",
+      ar: "حرف إنجليزي صغير واحد على الأقل",
     }),
     policyNumber: t({
       en: "At least one number",
@@ -158,12 +158,16 @@ export default {
       ar: "يرجى إدخال عنوان بريد إلكتروني صالح",
     }),
     errorUsernameInvalid: t({
-      en: "Username can only contain letters, numbers, underscore and dash",
-      ar: "يمكن أن يحتوي اسم المستخدم على أحرف وأرقام وشرطة سفلية وشرطة فقط",
+      en: "Username can only contain letters, numbers and underscores",
+      ar: "يمكن أن يحتوي اسم المستخدم على أحرف وأرقام وشرطة سفلية فقط",
     }),
     errorUsernameLength: t({
-      en: "Username must be between 3 and 20 characters",
-      ar: "يجب أن يكون اسم المستخدم بين 3 و 20 حرفًا",
+      en: "Username must be between 3 and 30 characters",
+      ar: "يجب أن يكون اسم المستخدم بين 3 و 30 حرفًا",
+    }),
+    errorUsernameTaken: t({
+      en: "Username is taken",
+      ar: "اسم المستخدم محجوز",
     }),
     errorPasswordMatch: t({
       en: "Passwords do not match",

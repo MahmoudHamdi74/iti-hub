@@ -26,7 +26,7 @@ const ProfileInfo = ({ profile }) => {
         )}
 
         {/* Stats Section */}
-        <div className="flex items-center gap-8 pt-4 border-t border-neutral-200">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-8 pt-4 border-t border-neutral-200">
           {/* Followers */}
           <button 
             onClick={() => setShowFollowers(true)}
