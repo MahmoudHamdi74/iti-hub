@@ -13,7 +13,7 @@
 const { register } = require('./registerController');
 const { login } = require('./loginController');
 const { requestPasswordReset, confirmPasswordReset } = require('./passwordResetController');
-const { verifyEmail } = require('./emailVerificationController');
+const { verifyEmail, verifyOtp, resendOtp } = require('./emailVerificationController');
 const { googleAuth } = require('./googleAuthController');
 
 module.exports = {
@@ -29,5 +29,9 @@ module.exports = {
   // Password Reset
   requestPasswordReset,
   confirmPasswordReset,
-  verifyEmail
+  verifyEmail,
+
+  // Email OTP verification
+  verifyOtp,
+  resendOtp
 };

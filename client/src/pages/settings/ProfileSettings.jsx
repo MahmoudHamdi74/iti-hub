@@ -1,19 +1,67 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useIntlayer } from 'react-intlayer';
 import { toast } from 'react-hot-toast';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
+import { HiCheck, HiXMark, HiOutlineShare } from 'react-icons/hi2';
 import { useSettingsUpdateProfile } from '@hooks/mutations/useCourseMutations';
 import { useUploadProfilePicture, useUploadCoverImage } from '@hooks/mutations/useUserMutations';
+import { useCheckUsernameAvailability } from '@hooks/mutations/useCheckUsernameAvailability';
+import { useCreatePost } from '@hooks/mutations/useCreatePost';
 import { useAuthStore } from '@/store/auth';
+
+const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,30}$/;
 
 export default function ProfileSettings({ user }) {
   const content = useIntlayer('settings');
   const setUser = useAuthStore((s) => s.setUser);
 
   const [fullName, setFullName] = useState(user?.fullName || '');
+  const [username, setUsername] = useState(user?.username || '');
   const [bio, setBio] = useState(user?.bio || '');
   const [specialization, setSpecialization] = useState(user?.specialization || '');
   const [location, setLocation] = useState(user?.location || '');
+
+  // Username availability — debounced like the register flow
+  const [usernameStatus, setUsernameStatus] = useState('idle'); // idle|checking|available|taken|invalid
+  const checkUsernameMutation = useCheckUsernameAvailability();
+  const usernameDebounceRef = useRef(null);
+
+  useEffect(() => {
+    let active = true;
+    const value = username.trim().toLowerCase();
+    clearTimeout(usernameDebounceRef.current);
+
+    if (!value || value === (user?.username || '').toLowerCase()) {
+      setUsernameStatus('idle');
+      return;
+    }
+    if (!USERNAME_PATTERN.test(value)) {
+      setUsernameStatus('invalid');
+      return;
+    }
+
+    setUsernameStatus('checking');
+    usernameDebounceRef.current = setTimeout(() => {
+      checkUsernameMutation.mutate(
+        { username: value },
+        {
+          onSuccess: (response) => {
+            if (!active) return;
+            setUsernameStatus(response.data?.data?.available ? 'available' : 'taken');
+          },
+          onError: () => { if (active) setUsernameStatus('idle'); },
+        }
+      );
+    }, 600);
+
+    return () => { active = false; clearTimeout(usernameDebounceRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username, user?.username]);
+
+  // Profile picture sharing (work order item 5): after uploading a new
+  // picture, offer to create a feed post with the same image file.
+  const [shareCandidate, setShareCandidate] = useState(null); // { file, url }
+  const createPostMutation = useCreatePost();
 
   const updateProfileMutation = useSettingsUpdateProfile();
   const uploadProfileMutation = useUploadProfilePicture();
@@ -21,9 +69,24 @@ export default function ProfileSettings({ user }) {
 
   const handleSave = async (e) => {
     e.preventDefault();
+
+    // Block saving a username that is taken / invalid
+    if (usernameStatus === 'taken') {
+      toast.error('Username is taken');
+      return;
+    }
+    if (!USERNAME_PATTERN.test(username.trim())) {
+      toast.error('Username must be 3-30 characters (letters, numbers, underscores)');
+      return;
+    }
+
     try {
       const updates = {};
       if (fullName.trim()) updates.fullName = fullName.trim();
+      const nextUsername = username.trim().toLowerCase();
+      if (nextUsername && nextUsername !== (user?.username || '').toLowerCase()) {
+        updates.username = nextUsername;
+      }
       if (bio !== undefined) updates.bio = bio.trim();
       if (specialization) updates.specialization = specialization.trim();
       if (location) updates.location = location.trim();
@@ -34,7 +97,12 @@ export default function ProfileSettings({ user }) {
       }
       toast.success(content.saveSuccess.value);
     } catch (err) {
-      toast.error(err.response?.data?.error?.message || 'Failed to update');
+      if (err.response?.data?.error?.code === 'USERNAME_EXISTS') {
+        setUsernameStatus('taken');
+        toast.error('Username is taken');
+      } else {
+        toast.error(err.response?.data?.error?.message || 'Failed to update');
+      }
     }
   };
 
@@ -47,7 +115,10 @@ export default function ProfileSettings({ user }) {
     }
     try {
       const result = await uploadProfileMutation.mutateAsync(file);
-      if (result.data?.user) setUser(result.data.user);
+      if (result.data?.user) setUser({ ...user, ...result.data.user });
+      // Remember the file so the user can share the new picture to their feed
+      const uploadedUrl = result.data?.user?.profilePicture;
+      setShareCandidate(uploadedUrl ? { file, url: uploadedUrl } : null);
     } catch {
       toast.error('Failed to upload');
     }
@@ -97,6 +168,50 @@ export default function ProfileSettings({ user }) {
         </div>
       </div>
 
+      {/* Share the new profile picture to the feed (work order item 5) */}
+      {shareCandidate && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary-200 bg-primary-50/60 p-3">
+          <img
+            src={shareCandidate.url}
+            alt=""
+            className="w-12 h-12 rounded-full object-cover border border-outline shrink-0"
+          />
+          <p className="flex-1 text-sm text-neutral-700">Share your new photo in your feed?</p>
+          <button
+            type="button"
+            disabled={createPostMutation.isPending}
+            onClick={async () => {
+              try {
+                await createPostMutation.mutateAsync({
+                  content: 'Updated my profile picture ✨',
+                  images: [shareCandidate.file],
+                });
+                toast.success('Shared to your feed 🎉');
+                setShareCandidate(null);
+              } catch (err) {
+                toast.error(err.response?.data?.error?.message || 'Failed to share');
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {createPostMutation.isPending ? (
+              <AiOutlineLoading3Quarters className="w-4 h-4 animate-spin" />
+            ) : (
+              <HiOutlineShare className="w-4 h-4" />
+            )}
+            Share to feed
+          </button>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            onClick={() => setShareCandidate(null)}
+            className="p-1.5 rounded-full text-neutral-500 hover:bg-neutral-200 transition-colors"
+          >
+            <HiXMark className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Cover Image */}
       <div>
         <label htmlFor="coverUpload" className="block text-sm font-medium text-neutral-700 mb-2">
@@ -130,6 +245,46 @@ export default function ProfileSettings({ user }) {
           placeholder={content.fullNamePlaceholder.value}
           className="w-full h-11 px-3 rounded-lg border border-outline bg-surface-lowest text-neutral-900 text-sm focus:outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-100"
         />
+      </div>
+
+      {/* Username (work order item 2) */}
+      <div>
+        <label htmlFor="settingsUsername" className="block text-sm font-medium text-neutral-700 mb-2">
+          Username
+        </label>
+        <div className="relative">
+          <input
+            id="settingsUsername"
+            required
+            minLength={3}
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="your_username"
+            maxLength={30}
+            className="w-full h-11 px-3 rounded-lg border border-outline bg-surface-lowest text-neutral-900 text-sm focus:outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-100"
+          />
+          {usernameStatus === 'checking' && (
+            <AiOutlineLoading3Quarters className="w-5 h-5 animate-spin text-neutral-400 absolute ltr:right-3 rtl:left-3 top-1/2 -translate-y-1/2" />
+          )}
+          {usernameStatus === 'available' && (
+            <HiCheck className="w-5 h-5 text-success absolute ltr:right-3 rtl:left-3 top-1/2 -translate-y-1/2" />
+          )}
+          {usernameStatus === 'taken' && (
+            <HiXMark className="w-5 h-5 text-error absolute ltr:right-3 rtl:left-3 top-1/2 -translate-y-1/2" />
+          )}
+        </div>
+        {usernameStatus === 'available' && (
+          <p className="text-caption text-success mt-1">Username is available</p>
+        )}
+        {usernameStatus === 'taken' && (
+          <p className="text-caption text-error mt-1">Username is taken</p>
+        )}
+        {usernameStatus === 'invalid' && (
+          <p className="text-caption text-error mt-1">
+            3-30 characters — letters, numbers, and underscores only
+          </p>
+        )}
       </div>
 
       {/* Bio */}

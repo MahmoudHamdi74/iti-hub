@@ -123,6 +123,15 @@ const UserSchema = new mongoose.Schema(
       default: false,
     },
 
+    // Set ONLY for accounts created through the email + OTP registration
+    // flow. Login is blocked until these verify their email. Legacy accounts
+    // (field absent/false) keep logging in exactly as before.
+    emailVerificationRequired: {
+      type: Boolean,
+      default: false,
+    },
+
+    emailVerificationAttempts: { type: Number, default: 0, select: false },
     emailVerificationToken: {
       type: String,
       select: false,
@@ -227,6 +236,22 @@ UserSchema.methods.generateEmailVerificationToken = function () {
   this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 ساعة
 
   return verificationToken;
+};
+
+// Generate a 6-digit email OTP. Only its SHA-256 hash + a 10-minute expiry
+// are stored; the plain code is returned so it can be emailed to the user.
+UserSchema.methods.generateEmailOtp = function () {
+  this.emailVerificationAttempts = 0;
+  const otp = crypto.randomInt(100000, 1000000).toString(); // 6 digits
+
+  this.emailVerificationToken = crypto
+    .createHash("sha256")
+    .update(otp)
+    .digest("hex");
+
+  this.emailVerificationExpires = Date.now() + 10 * 60 * 1000; // 10 دقائق
+
+  return otp;
 };
 
 module.exports = mongoose.model("User", UserSchema);

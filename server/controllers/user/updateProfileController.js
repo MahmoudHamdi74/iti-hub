@@ -1,7 +1,7 @@
 const User = require('../../models/User');
 const { validateProfileUpdate, sanitizeUserProfile } = require('../../utils/userHelpers');
 const { asyncHandler } = require('../../middlewares/errorHandler');
-const { ValidationError, NotFoundError } = require('../../utils/errors');
+const { ValidationError, NotFoundError, ConflictError } = require('../../utils/errors');
 const { sendSuccess } = require('../../utils/responseHelpers');
 
 /**
@@ -27,12 +27,31 @@ const updateProfile = asyncHandler(async (req, res) => {
     throw new ValidationError('No valid fields provided for update');
   }
   
+  // Enforce username uniqueness (the model lowercases, so exact match suffices)
+  if (validation.validatedData.username !== undefined) {
+    const existingUsername = await User.findOne({
+      username: validation.validatedData.username,
+      _id: { $ne: userId },
+    });
+    if (existingUsername) {
+      throw new ConflictError('Username is already taken', 'USERNAME_EXISTS');
+    }
+  }
+  
   // Update user profile
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    { $set: validation.validatedData },
-    { new: true, runValidators: true }
-  );
+  let updatedUser;
+  try {
+    updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: validation.validatedData },
+      { new: true, runValidators: true }
+    );
+  } catch (error) {
+    if (error.code === 11000 && error.keyPattern?.username) {
+      throw new ConflictError('Username is taken', 'USERNAME_EXISTS');
+    }
+    throw error;
+  }
   
   if (!updatedUser) {
     throw new NotFoundError('User not found');

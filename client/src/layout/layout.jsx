@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useIntlayer } from 'react-intlayer';
-import { HiOutlineUser, HiOutlineXMark, HiOutlineMagnifyingGlass, HiPlus } from 'react-icons/hi2';
+import { HiOutlineUser, HiOutlineXMark, HiPlus } from 'react-icons/hi2';
 import { UserAvatar } from '@components/user/UserAvatar';
 import BrandLogo from '@components/common/BrandLogo';
 import AccountMenu from '@components/Sidebar/AccountMenu';
@@ -53,7 +53,10 @@ export default function Layout() {
     <div className="mx-auto flex max-w-[1500px] items-start">
       <aside className="sticky top-0 hidden h-screen w-[88px] shrink-0 flex-col px-2 py-3 lg:flex xl:w-[260px] xl:px-4">
         <NavLink to="/" aria-label="ITI Hub" className="mb-3 px-3"><BrandLogo className="h-12 w-12" /></NavLink>
-        <NavLink to="/search" aria-label="Search" title="Search" className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-neutral-700 hover:bg-neutral-100"><HiOutlineMagnifyingGlass className="h-6 w-6" /></NavLink>
+        {/* Real search bar (xl: full pill — lg: icon button with floating
+            panel) instead of a dead icon that only linked to /search, which
+            had no input (work order item 1). */}
+        <div className="mb-3"><SidebarSearch /></div>
         <nav className="no-scrollbar mt-3 min-h-0 flex-1 overflow-y-auto" aria-label={content.menu?.value || 'Navigation'}>{navigation()}</nav>
         <button onClick={() => requireAuth(() => setCompose(true))} className="my-3 flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary-600 p-3 font-bold text-white"><HiPlus className="h-6 w-6" /><span className="hidden xl:inline">{content.post}</span></button>
         {isAuthenticated ? <AccountMenu /> : <NavLink to="/login" className="rounded-full border border-outline px-2 py-3 text-center text-sm font-semibold">{content.login}</NavLink>}

@@ -1,10 +1,10 @@
 const User = require("../../models/User");
 const crypto = require("crypto");
 const { asyncHandler } = require("../../middlewares/errorHandler");
-const { ValidationError } = require("../../utils/errors");
+const { ValidationError, ForbiddenError } = require("../../utils/errors");
 const { sendSuccess } = require("../../utils/responseHelpers");
 const sendEmail = require('../../utils/sendEmail');
-const { getEmailVerificationTemplate } = require('../../utils/emailTemplates');
+const { getOtpEmailTemplate, getEmailVerificationTemplate } = require('../../utils/emailTemplates');
 
 exports.verifyEmail = asyncHandler(async (req, res) => {
   const { token } = req.query;
@@ -18,6 +18,7 @@ exports.verifyEmail = asyncHandler(async (req, res) => {
 
   // Find user with matching token and non-expired expiration
   const user = await User.findOne({
+    emailVerificationRequired: { $ne: true },
     emailVerificationToken: hashedToken,
     emailVerificationExpires: { $gt: Date.now() }
   }).select('+emailVerificationToken');
@@ -75,3 +76,129 @@ exports.resendVerificationEmail = asyncHandler(async (req, res) => {
   // Here you would typically send the verification email again
   return sendSuccess(res, {}, "Verification email resent successfully");  
 }); 
+
+/**
+ * POST /auth/verify-otp
+ * Body: { email, otp }
+ * Verifies the 6-digit code emailed at registration. On success the user's
+ * email is marked verified and an app JWT is returned (auto-login).
+ */
+const normalizeOtp = (value) => String(value || "").trim();
+
+exports.verifyOtp = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    throw new ValidationError("Email and verification code are required", {
+      fields: {
+        ...(!email && { email: "Email is required" }),
+        ...(!otp && { otp: "Verification code is required" }),
+      },
+    });
+  }
+
+  if (!/^\d{6}$/.test(normalizeOtp(otp))) {
+    throw new ValidationError("Invalid verification code", "INVALID_OTP");
+  }
+
+  const user = await User.findOne({ email: String(email).trim().toLowerCase() }).select(
+    "+emailVerificationToken +emailVerificationAttempts"
+  );
+
+  if (!user) {
+    throw new ValidationError("Invalid or expired verification code", "INVALID_OTP");
+  }
+
+  if (user.isBlocked) throw new ForbiddenError('Your account has been blocked', 'ACCOUNT_BLOCKED');
+  if ((user.emailVerificationAttempts || 0) >= 5) {
+    throw new ValidationError('Please request a new verification code.', 'OTP_EXPIRED');
+  }
+
+  // Already verified → do NOT issue a token here (this endpoint is public);
+  // the user simply logs in normally.
+  if (user.isEmailVerified) {
+    throw new ValidationError("Email is already verified. Please log in.", "EMAIL_ALREADY_VERIFIED");
+  }
+
+  if (
+    !user.emailVerificationToken ||
+    !user.emailVerificationExpires ||
+    user.emailVerificationExpires.getTime() < Date.now()
+  ) {
+    throw new ValidationError(
+      "Verification code has expired. Please request a new one.",
+      "OTP_EXPIRED"
+    );
+  }
+
+  const hashedOtp = crypto
+    .createHash("sha256")
+    .update(normalizeOtp(otp))
+    .digest("hex");
+
+  const provided = Buffer.from(hashedOtp);
+  const stored = Buffer.from(user.emailVerificationToken);
+  if (provided.length !== stored.length || !crypto.timingSafeEqual(provided, stored)) {
+    await User.updateOne({ _id: user._id, emailVerificationToken: user.emailVerificationToken },
+      { $inc: { emailVerificationAttempts: 1 } });
+    throw new ValidationError("Invalid verification code. Please try again.", "INVALID_OTP");
+  }
+
+  // Consume once: a concurrent request or resend must not reuse the code.
+  const verifiedUser = await User.findOneAndUpdate({
+    _id: user._id,
+    emailVerificationToken: hashedOtp,
+    emailVerificationExpires: { $gt: new Date() },
+    isEmailVerified: false,
+    isBlocked: { $ne: true },
+    $or: [{ emailVerificationAttempts: { $lt: 5 } }, { emailVerificationAttempts: { $exists: false } }],
+  }, {
+    $set: { isEmailVerified: true },
+    $unset: { emailVerificationToken: 1, emailVerificationExpires: 1, emailVerificationAttempts: 1 },
+  }, { new: true });
+  if (!verifiedUser) throw new ValidationError('Invalid or expired verification code', 'INVALID_OTP');
+  const token = verifiedUser.generateAuthToken();
+  const userObject = verifiedUser.toObject();
+  delete userObject.password;
+
+  return sendSuccess(res, { token, user: userObject }, "Email verified successfully 🎉");
+});
+
+/**
+ * POST /auth/resend-otp
+ * Body: { email }
+ * Public resend for users stuck on the OTP screen (e.g. after a failed
+ * delivery). Responds generically so it never reveals which emails exist.
+ */
+exports.resendOtp = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ValidationError("Email is required", {
+      fields: { email: "Email is required" },
+    });
+  }
+
+  const user = await User.findOne({ email: String(email).trim().toLowerCase() });
+
+  if (user && !user.isBlocked && !user.isEmailVerified && user.emailVerificationRequired) {
+    const otp = user.generateEmailOtp();
+    await user.save({ validateBeforeSave: false });
+
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: "Your itiHub Verification Code",
+        html: getOtpEmailTemplate(otp, user.fullName),
+      });
+    } catch (emailError) {
+      console.error("[resendOtp] OTP email send failed:", emailError.message);
+    }
+  }
+
+  return sendSuccess(
+    res,
+    {},
+    "If the account exists and needs verification, a new code has been sent."
+  );
+});

@@ -6,3 +6,4 @@ export { default as Loading } from './Loading';
 export { default as ErrorDisplay } from './ErrorDisplay';
 export { default as PageBanner } from './PageBanner';
 export { default as LanguageSwitcher } from './LanguageSwitcher';
+export { default as Lightbox } from './Lightbox';

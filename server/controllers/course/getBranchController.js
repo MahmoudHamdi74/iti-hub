@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Branch = require('../../models/Branch');
+const { addBranchCovers } = require('../../utils/branchCover');
 const Round = require('../../models/Round');
 const Track = require('../../models/Track');
 const { asyncHandler } = require('../../middlewares/errorHandler');
@@ -52,7 +53,7 @@ const getBranch = asyncHandler(async (req, res) => {
   return sendSuccess(
     res,
     {
-      branch,
+      branch: (await addBranchCovers([branch]))[0],
       rounds: roundsWithStats,
       totalStudents: studentAgg[0]?.total || 0,
     },

@@ -1,8 +1,7 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useIntlayer } from 'react-intlayer';
 import {
   HiArrowLeft,
-  HiOutlineBuildingOffice2,
   HiOutlineMapPin,
   HiOutlineUsers,
   HiOutlineAcademicCap,
@@ -71,6 +70,7 @@ function RoundItem({ round, branchId }) {
 export default function BranchDetailController() {
   const { branchId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const t = useBranchesContent();
 
   const { data, isLoading, isError, refetch } = useBranchDetail(branchId);
@@ -78,6 +78,10 @@ export default function BranchDetailController() {
   const branch = data?.data?.data?.branch;
   const rounds = data?.data?.data?.rounds ?? [];
   const totalStudents = data?.data?.data?.totalStudents ?? 0;
+
+  // The list page passes a borrowed cover image (from a nearby branch) via
+  // navigation state for branches that have none (work order item 7).
+  const fallbackCover = location.state?.coverImage || undefined;
 
   if (isLoading) {
     return (
@@ -111,8 +115,8 @@ export default function BranchDetailController() {
       {/* Branch header — signature gradient banner (work order v2 §1) */}
       <PageBanner
         title={branch?.name}
-        icon={HiOutlineBuildingOffice2}
-        image={branch?.coverImage || undefined}
+        icon={HiOutlineAcademicCap}
+        image={branch?.coverImage || fallbackCover}
         subtitle={
           (branch?.location || totalStudents > 0) && (
             <span className="flex flex-wrap items-center gap-x-4 gap-y-1">

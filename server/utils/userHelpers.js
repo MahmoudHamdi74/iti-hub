@@ -98,6 +98,20 @@ function validateProfileUpdate(updateData) {
     }
   }
   
+  // Validate username if provided (same rules as registration)
+  if (validatedData.username !== undefined) {
+    if (typeof validatedData.username !== 'string') {
+      errors.push('Username must be a string');
+    } else {
+      const trimmed = validatedData.username.trim().toLowerCase();
+      if (!/^[a-z0-9_]{3,30}$/.test(trimmed)) {
+        errors.push('Username must be 3-30 characters and contain only letters, numbers, and underscores');
+      } else {
+        validatedData.username = trimmed;
+      }
+    }
+  }
+  
   // Validate bio if provided
   if (validatedData.bio !== undefined) {
     if (typeof validatedData.bio !== 'string') {

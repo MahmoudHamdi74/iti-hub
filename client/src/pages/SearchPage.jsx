@@ -1,5 +1,6 @@
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { HiMagnifyingGlass } from 'react-icons/hi2';
+import { useEffect, useState } from 'react';
+import { HiMagnifyingGlass, HiXMark } from 'react-icons/hi2';
 import { useIntlayer } from 'react-intlayer';
 import useSearch from '@hooks/queries/useSearch';
 import useIntersectionObserver from '@hooks/useIntersectionObserver';
@@ -33,8 +34,43 @@ const SearchPage = () => {
   if (!['users', 'communities', 'posts'].includes(activeTab)) {
     activeTab = 'users';
   }
-  
-  
+
+  // ---- Search bar state: typing here updates ?q= (debounced) ----
+  const [input, setInput] = useState(query);
+
+  useEffect(() => {
+    // Keep the input in sync when the URL changes externally (back/forward)
+    setInput(query);
+  }, [query]);
+
+  useEffect(() => {
+    const trimmed = input.trim();
+    if (trimmed === query) return; // nothing new
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams);
+      if (trimmed.length > 0) {
+        params.set('q', trimmed);
+      } else {
+        params.delete('q');
+      }
+      setSearchParams(params, { replace: true });
+    }, 350);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input]);
+
+  const submitSearch = (e) => {
+    e.preventDefault();
+    const trimmed = input.trim();
+    const params = new URLSearchParams(searchParams);
+    if (trimmed.length > 0) {
+      params.set('q', trimmed);
+    } else {
+      params.delete('q');
+    }
+    setSearchParams(params);
+  };
+
   // Fetch data from all three endpoints with infinite scroll
   const { users, posts, communities, isLoading, error } = useSearch({ 
     query,
@@ -99,6 +135,34 @@ const SearchPage = () => {
       {/* Header */}
       <div className="bg-neutral-50 border-b border-neutral-200 sticky top-0 z-3">
         <div className="max-w-4xl mx-auto px-4 py-4">
+          {/* Search bar — the page previously showed results with no way to
+              type a query (work order item 1). */}
+          <form onSubmit={submitSearch} className="relative mb-4">
+            <HiMagnifyingGlass
+              className="w-5 h-5 text-neutral-500 absolute ltr:left-4 rtl:right-4 top-1/2 -translate-y-1/2 pointer-events-none"
+              aria-hidden="true"
+            />
+            <input
+              type="text"
+              autoFocus
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={content.searchPlaceholder.value}
+              aria-label={content.searchPlaceholder.value}
+              className="w-full h-11 text-body-2 ps-12 pe-11 rounded-full bg-neutral-100 border border-outline text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:border-primary-400 focus:bg-surface-lowest focus-visible:ring-2 focus-visible:ring-primary-100 transition-colors"
+            />
+            {input && (
+              <button
+                type="button"
+                onClick={() => setInput('')}
+                aria-label={content.clear?.value || 'Clear'}
+                className="absolute ltr:right-3 rtl:left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center text-neutral-500 hover:bg-neutral-200 hover:text-neutral-700 transition-colors"
+              >
+                <HiXMark className="w-4 h-4" />
+              </button>
+            )}
+          </form>
+
           {query && (
             <h2 className="text-heading-5 text-neutral-900 mb-3">
               {content.searchResultsFor} "{query}"

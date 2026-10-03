@@ -1,4 +1,5 @@
 const Branch = require('../../models/Branch');
+const { addBranchCovers } = require('../../utils/branchCover');
 const Track = require('../../models/Track');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 const { sendSuccess } = require('../../utils/responseHelpers');
@@ -55,7 +56,8 @@ const listBranches = asyncHandler(async (req, res) => {
   const trackMap = new Map(activeTrackStats.map((s) => [String(s._id), s.count]));
   const studentMap = new Map(studentStats.map((s) => [String(s._id), s.count]));
 
-  const branchesWithStats = branches.map((branch) => ({
+  const coveredBranches = await addBranchCovers(branches);
+  const branchesWithStats = coveredBranches.map((branch) => ({
     ...branch,
     activeTracks: trackMap.get(String(branch._id)) || 0,
     students: studentMap.get(String(branch._id)) || 0,

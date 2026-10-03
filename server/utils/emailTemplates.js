@@ -222,9 +222,37 @@ const getPasswordResetConfirmationTemplate = (userName = '') => {
   });
 };
 
+/**
+ * Email template for the registration OTP code
+ * @param {string} otp - 6-digit verification code
+ * @param {string} userName - User's name for personalization (optional)
+ * @returns {string} HTML email
+ */
+const getOtpEmailTemplate = (otp, userName = '') => {
+  const greeting = userName ? `Hi ${userName}` : 'Hello';
+
+  return createEmailTemplate({
+    title: 'Your Verification Code - itiHub',
+    preheader: `Your itiHub verification code is ${otp}`,
+    heading: `${greeting}! 👋`,
+    body: `
+      <p style="margin: 0 0 16px;">Welcome to <strong>itiHub</strong>! Use the verification code below to confirm your email address:</p>
+      <div style="margin: 28px 0; text-align: center;">
+        <span style="display: inline-block; padding: 18px 30px; background-color: #f5f7ff; border: 1px solid #d6dcff; border-radius: 12px; font-size: 34px; font-weight: 700; letter-spacing: 10px; color: #2563eb;">${otp}</span>
+      </div>
+      <p style="margin: 0 0 16px;">Enter this code in the app to finish creating your account.</p>
+    `,
+    footerText: `
+      <p style="margin: 0 0 8px;"><strong>This code will expire in 10 minutes.</strong></p>
+      <p style="margin: 0;">If you didn't request this code, you can safely ignore this email.</p>
+    `
+  });
+};
+
 module.exports = {
   createEmailTemplate,
   getEmailVerificationTemplate,
+  getOtpEmailTemplate,
   getPasswordResetTemplate,
   getPasswordResetConfirmationTemplate
 };
