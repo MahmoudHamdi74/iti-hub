@@ -131,6 +131,7 @@ const UserSchema = new mongoose.Schema(
       default: false,
     },
 
+    emailVerificationAttempts: { type: Number, default: 0, select: false },
     emailVerificationToken: {
       type: String,
       select: false,
@@ -240,6 +241,7 @@ UserSchema.methods.generateEmailVerificationToken = function () {
 // Generate a 6-digit email OTP. Only its SHA-256 hash + a 10-minute expiry
 // are stored; the plain code is returned so it can be emailed to the user.
 UserSchema.methods.generateEmailOtp = function () {
+  this.emailVerificationAttempts = 0;
   const otp = crypto.randomInt(100000, 1000000).toString(); // 6 digits
 
   this.emailVerificationToken = crypto

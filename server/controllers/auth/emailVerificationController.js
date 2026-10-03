@@ -1,11 +1,10 @@
 const User = require("../../models/User");
 const crypto = require("crypto");
-const jwt = require("jsonwebtoken");
 const { asyncHandler } = require("../../middlewares/errorHandler");
-const { ValidationError } = require("../../utils/errors");
+const { ValidationError, ForbiddenError } = require("../../utils/errors");
 const { sendSuccess } = require("../../utils/responseHelpers");
 const sendEmail = require('../../utils/sendEmail');
-const { getOtpEmailTemplate } = require('../../utils/emailTemplates');
+const { getOtpEmailTemplate, getEmailVerificationTemplate } = require('../../utils/emailTemplates');
 
 exports.verifyEmail = asyncHandler(async (req, res) => {
   const { token } = req.query;
@@ -19,6 +18,7 @@ exports.verifyEmail = asyncHandler(async (req, res) => {
 
   // Find user with matching token and non-expired expiration
   const user = await User.findOne({
+    emailVerificationRequired: { $ne: true },
     emailVerificationToken: hashedToken,
     emailVerificationExpires: { $gt: Date.now() }
   }).select('+emailVerificationToken');
@@ -83,7 +83,7 @@ exports.resendVerificationEmail = asyncHandler(async (req, res) => {
  * Verifies the 6-digit code emailed at registration. On success the user's
  * email is marked verified and an app JWT is returned (auto-login).
  */
-const normalizeOtp = (value) => String(value || "").replace(/\D/g, "");
+const normalizeOtp = (value) => String(value || "").trim();
 
 exports.verifyOtp = asyncHandler(async (req, res) => {
   const { email, otp } = req.body;
@@ -97,12 +97,21 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
     });
   }
 
-  const user = await User.findOne({ email: String(email).toLowerCase() }).select(
-    "+emailVerificationToken"
+  if (!/^\d{6}$/.test(normalizeOtp(otp))) {
+    throw new ValidationError("Invalid verification code", "INVALID_OTP");
+  }
+
+  const user = await User.findOne({ email: String(email).trim().toLowerCase() }).select(
+    "+emailVerificationToken +emailVerificationAttempts"
   );
 
   if (!user) {
     throw new ValidationError("Invalid or expired verification code", "INVALID_OTP");
+  }
+
+  if (user.isBlocked) throw new ForbiddenError('Your account has been blocked', 'ACCOUNT_BLOCKED');
+  if ((user.emailVerificationAttempts || 0) >= 5) {
+    throw new ValidationError('Please request a new verification code.', 'OTP_EXPIRED');
   }
 
   // Already verified → do NOT issue a token here (this endpoint is public);
@@ -130,16 +139,26 @@ exports.verifyOtp = asyncHandler(async (req, res) => {
   const provided = Buffer.from(hashedOtp);
   const stored = Buffer.from(user.emailVerificationToken);
   if (provided.length !== stored.length || !crypto.timingSafeEqual(provided, stored)) {
+    await User.updateOne({ _id: user._id, emailVerificationToken: user.emailVerificationToken },
+      { $inc: { emailVerificationAttempts: 1 } });
     throw new ValidationError("Invalid verification code. Please try again.", "INVALID_OTP");
   }
 
-  user.isEmailVerified = true;
-  user.emailVerificationToken = undefined;
-  user.emailVerificationExpires = undefined;
-  await user.save();
-
-  const token = user.generateAuthToken();
-  const userObject = user.toObject();
+  // Consume once: a concurrent request or resend must not reuse the code.
+  const verifiedUser = await User.findOneAndUpdate({
+    _id: user._id,
+    emailVerificationToken: hashedOtp,
+    emailVerificationExpires: { $gt: new Date() },
+    isEmailVerified: false,
+    isBlocked: { $ne: true },
+    $or: [{ emailVerificationAttempts: { $lt: 5 } }, { emailVerificationAttempts: { $exists: false } }],
+  }, {
+    $set: { isEmailVerified: true },
+    $unset: { emailVerificationToken: 1, emailVerificationExpires: 1, emailVerificationAttempts: 1 },
+  }, { new: true });
+  if (!verifiedUser) throw new ValidationError('Invalid or expired verification code', 'INVALID_OTP');
+  const token = verifiedUser.generateAuthToken();
+  const userObject = verifiedUser.toObject();
   delete userObject.password;
 
   return sendSuccess(res, { token, user: userObject }, "Email verified successfully 🎉");
@@ -160,9 +179,9 @@ exports.resendOtp = asyncHandler(async (req, res) => {
     });
   }
 
-  const user = await User.findOne({ email: String(email).toLowerCase() });
+  const user = await User.findOne({ email: String(email).trim().toLowerCase() });
 
-  if (user && !user.isEmailVerified && user.emailVerificationRequired) {
+  if (user && !user.isBlocked && !user.isEmailVerified && user.emailVerificationRequired) {
     const otp = user.generateEmailOtp();
     await user.save({ validateBeforeSave: false });
 

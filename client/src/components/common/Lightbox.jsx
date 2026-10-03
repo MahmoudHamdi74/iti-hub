@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Dialog, DialogPanel } from '@headlessui/react';
 import { HiXMark } from 'react-icons/hi2';
 
 /**
@@ -11,9 +12,8 @@ import { HiXMark } from 'react-icons/hi2';
  * behavior without wrapping individual components.
  *
  * Clicks are ignored when the media:
- *  - sits inside a link, button, or [role="button"] (navigation/action first)
+ *  - sits inside a button (for example the navigation avatar)
  *  - is explicitly opted out via data-no-lightbox (element or ancestor)
- *  - is a native-controls video (user is driving the player itself)
  *  - is a tiny intrinsic image (<64px — icons/spacers)
  *
  * Close with ✕, Escape, or a click on the dark backdrop.
@@ -28,7 +28,7 @@ const LIGHTBOX_STYLES = `
 
 function isExcluded(el) {
   return !!(
-    el.closest('a, button, [role="button"], [data-no-lightbox]') ||
+    el.closest('button, [data-no-lightbox]') ||
     el.dataset?.noLightbox != null
   );
 }
@@ -46,14 +46,15 @@ export default function Lightbox() {
       if (el.closest('.lb-overlay')) return;
 
       if (el.tagName === 'VIDEO') {
-        if (el.controls) return; // let the user drive the native player
         const src =
           el.currentSrc ||
           el.querySelector('source')?.src ||
           el.src;
         if (!src) return;
+        el.pause();
         setMedia({ type: 'video', src, alt: el.getAttribute('aria-label') || '' });
         e.preventDefault();
+        e.stopPropagation();
         return;
       }
 
@@ -65,6 +66,7 @@ export default function Lightbox() {
       if (!src) return;
       setMedia({ type: 'image', src, alt: el.alt || '' });
       e.preventDefault();
+      e.stopPropagation();
     };
 
     document.addEventListener('click', handleClick, true);
@@ -91,13 +93,12 @@ export default function Lightbox() {
   return createPortal(
     <>
       <style>{LIGHTBOX_STYLES}</style>
-      <div
+      <Dialog open onClose={() => setMedia(null)}
         className="lb-overlay fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 sm:p-8"
-        onClick={() => setMedia(null)}
-        role="dialog"
-        aria-modal="true"
         aria-label={media.alt || 'Media viewer'}
       >
+        <div className="absolute inset-0" aria-hidden="true" />
+        <DialogPanel className="relative flex max-h-full max-w-full items-center justify-center">
         {/* Close */}
         <button
           type="button"
@@ -130,7 +131,8 @@ export default function Lightbox() {
             {media.alt}
           </p>
         )}
-      </div>
+        </DialogPanel>
+      </Dialog>
     </>,
     document.body
   );

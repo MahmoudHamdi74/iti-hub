@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useIntlayer } from 'react-intlayer';
 import { toast } from 'react-hot-toast';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
-import { HiCheck, HiXMark, HiOutlineShare, HiOutlinePaperAirplane } from 'react-icons/hi2';
+import { HiCheck, HiXMark, HiOutlineShare } from 'react-icons/hi2';
 import { useSettingsUpdateProfile } from '@hooks/mutations/useCourseMutations';
 import { useUploadProfilePicture, useUploadCoverImage } from '@hooks/mutations/useUserMutations';
 import { useCheckUsernameAvailability } from '@hooks/mutations/useCheckUsernameAvailability';
@@ -27,6 +27,7 @@ export default function ProfileSettings({ user }) {
   const usernameDebounceRef = useRef(null);
 
   useEffect(() => {
+    let active = true;
     const value = username.trim().toLowerCase();
     clearTimeout(usernameDebounceRef.current);
 
@@ -45,16 +46,17 @@ export default function ProfileSettings({ user }) {
         { username: value },
         {
           onSuccess: (response) => {
+            if (!active) return;
             setUsernameStatus(response.data?.data?.available ? 'available' : 'taken');
           },
-          onError: () => setUsernameStatus('idle'),
+          onError: () => { if (active) setUsernameStatus('idle'); },
         }
       );
     }, 600);
 
-    return () => clearTimeout(usernameDebounceRef.current);
+    return () => { active = false; clearTimeout(usernameDebounceRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [username]);
+  }, [username, user?.username]);
 
   // Profile picture sharing (work order item 5): after uploading a new
   // picture, offer to create a feed post with the same image file.
@@ -73,7 +75,7 @@ export default function ProfileSettings({ user }) {
       toast.error('Username is taken');
       return;
     }
-    if (usernameStatus === 'invalid') {
+    if (!USERNAME_PATTERN.test(username.trim())) {
       toast.error('Username must be 3-30 characters (letters, numbers, underscores)');
       return;
     }
@@ -82,7 +84,7 @@ export default function ProfileSettings({ user }) {
       const updates = {};
       if (fullName.trim()) updates.fullName = fullName.trim();
       const nextUsername = username.trim().toLowerCase();
-      if (nextUsername && nextUsername !== (user?.username || '').toLowerCase() && usernameStatus === 'available') {
+      if (nextUsername && nextUsername !== (user?.username || '').toLowerCase()) {
         updates.username = nextUsername;
       }
       if (bio !== undefined) updates.bio = bio.trim();
@@ -113,7 +115,7 @@ export default function ProfileSettings({ user }) {
     }
     try {
       const result = await uploadProfileMutation.mutateAsync(file);
-      if (result.data?.user) setUser(result.data.user);
+      if (result.data?.user) setUser({ ...user, ...result.data.user });
       // Remember the file so the user can share the new picture to their feed
       const uploadedUrl = result.data?.user?.profilePicture;
       setShareCandidate(uploadedUrl ? { file, url: uploadedUrl } : null);
@@ -253,6 +255,8 @@ export default function ProfileSettings({ user }) {
         <div className="relative">
           <input
             id="settingsUsername"
+            required
+            minLength={3}
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}

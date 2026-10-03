@@ -90,6 +90,10 @@ export default function AuthLoginController() {
       },
       onError: (error) => {
         const errorCode = error?.response?.data?.error?.code;
+        if (errorCode === 'EMAIL_NOT_VERIFIED') {
+          navigate(`/verify-otp?email=${encodeURIComponent(data.email.trim())}`);
+          return;
+        }
         
         if (errorCode === 'TOO_MANY_REQUESTS') {
           const retryAfter = error?.response?.data?.error?.retryAfter || DEFAULT_COOLDOWN_MS;

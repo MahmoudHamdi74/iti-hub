@@ -1,0 +1,73 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const express = require('express');
+const request = require('supertest');
+const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
+
+test('registration OTP, username updates, and branch covers', async (t) => {
+  process.env.NODE_ENV = 'test';
+  process.env.JWT_SECRET = 'isolated-feature-test-secret';
+  const emails = [];
+  const emailPath = require.resolve('../utils/sendEmail');
+  require.cache[emailPath] = { id: emailPath, filename: emailPath, loaded: true,
+    exports: async message => { emails.push(message); } };
+  const db = await MongoMemoryServer.create();
+  await mongoose.connect(db.getUri());
+  t.after(async () => { await mongoose.disconnect(); await db.stop(); });
+  const User = require('../models/User');
+  const Branch = require('../models/Branch');
+  await User.init();
+  const app = express();
+  app.use(express.json());
+  app.use('/auth', require('../routes/authRoutes'));
+  app.patch('/users/me', require('../middlewares/checkAuth').checkAuth,
+    require('../controllers/user/updateProfileController'));
+  app.get('/branches', require('../controllers/course/listBranchesController'));
+  app.get('/branches/:id', require('../controllers/course/getBranchController'));
+  app.use(require('../middlewares/errorHandler').errorHandler);
+  const account = { email: 'review@example.com', username: 'reviewer', fullName: 'Review User', password: 'TestPassword123!' };
+  const post = (route, body) => request(app).post(route).send(body);
+  const latestCode = () => emails.at(-1).html.match(/\b\d{6}\b/)[0];
+  const registered = await post('/auth/register', account);
+  assert.equal(registered.status, 201);
+  assert.equal(registered.body.data.token, undefined);
+  assert.equal(registered.body.data.user.emailVerificationToken, undefined);
+  assert.equal(registered.body.data.user.emailVerificationExpires, undefined);
+  assert.equal(emails[0].to, account.email);
+  assert.equal((await post('/auth/login', account)).body.error.code, 'EMAIL_NOT_VERIFIED');
+  const firstCode = latestCode();
+  assert.equal((await request(app).get('/auth/verify-email').query({ token: firstCode })).status, 400);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    assert.equal((await post('/auth/verify-otp', { email: account.email, otp: '000000' })).status, 400);
+  }
+  assert.equal((await post('/auth/verify-otp', { email: account.email, otp: firstCode })).body.error.code, 'OTP_EXPIRED');
+  await post('/auth/resend-otp', { email: account.email });
+  await User.updateOne({ email: account.email }, { $set: { emailVerificationExpires: new Date(0) } });
+  assert.equal((await post('/auth/verify-otp', { email: account.email, otp: latestCode() })).body.error.code, 'OTP_EXPIRED');
+  await post('/auth/resend-otp', { email: account.email });
+  const code = latestCode();
+  await User.updateOne({ email: account.email }, { $set: { isBlocked: true } });
+  assert.equal((await post('/auth/verify-otp', { email: account.email, otp: code })).status, 403);
+  await User.updateOne({ email: account.email }, { $set: { isBlocked: false } });
+  const concurrent = await Promise.all([1, 2].map(() => post('/auth/verify-otp', { email: account.email, otp: code })));
+  assert.equal(concurrent.filter(result => result.status === 200).length, 1);
+  assert.equal((await post('/auth/verify-otp', { email: account.email, otp: code })).status, 400);
+  const loggedIn = await post('/auth/login', account);
+  assert.equal(loggedIn.status, 200);
+  const token = loggedIn.body.data.token;
+  const update = body => request(app).patch('/users/me').set('Authorization', `Bearer ${token}`).send(body);
+  assert.equal((await update({ username: 'New_Name' })).body.data.username, 'new_name');
+  await User.create({ ...account, email: 'taken@example.com', username: 'taken_name' });
+  const taken = await update({ username: 'TAKEN_NAME' });
+  assert.equal(taken.status, 409);
+  assert.equal(taken.body.error.code, 'USERNAME_EXISTS');
+  assert.equal((await update({ username: 'invalid username' })).status, 400);
+  await Branch.create({ name: 'Alexandria Campus', location: 'Alexandria', coverImage: 'https://example.com/alex.jpg' });
+  const missing = await Branch.create({ name: 'Alexandria Extension', location: 'Alexandria' });
+  const filtered = await request(app).get('/branches').query({ search: 'Extension', limit: 1 });
+  assert.equal(filtered.body.data.branches[0].coverImage, 'https://example.com/alex.jpg');
+  const detail = await request(app).get(`/branches/${missing._id}`);
+  assert.equal(detail.body.data.branch.coverImage, 'https://example.com/alex.jpg');
+  assert.ok(!(await Branch.findById(missing._id)).coverImage);
+});

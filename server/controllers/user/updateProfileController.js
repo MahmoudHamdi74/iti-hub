@@ -39,11 +39,19 @@ const updateProfile = asyncHandler(async (req, res) => {
   }
   
   // Update user profile
-  const updatedUser = await User.findByIdAndUpdate(
-    userId,
-    { $set: validation.validatedData },
-    { new: true, runValidators: true }
-  );
+  let updatedUser;
+  try {
+    updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: validation.validatedData },
+      { new: true, runValidators: true }
+    );
+  } catch (error) {
+    if (error.code === 11000 && error.keyPattern?.username) {
+      throw new ConflictError('Username is taken', 'USERNAME_EXISTS');
+    }
+    throw error;
+  }
   
   if (!updatedUser) {
     throw new NotFoundError('User not found');

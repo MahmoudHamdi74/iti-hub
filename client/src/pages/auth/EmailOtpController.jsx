@@ -51,6 +51,8 @@ export default function EmailOtpController() {
       // Focus the last filled box
       const filled = Math.min(index + ch.length, CODE_LENGTH - 1);
       inputRefs.current[filled]?.focus();
+    } else if (ch && index < CODE_LENGTH - 1) {
+      inputRefs.current[index + 1]?.focus();
     }
   };
 
@@ -132,7 +134,7 @@ export default function EmailOtpController() {
                 setDigit(index, e.clipboardData.getData('text'));
               }}
               aria-label={`${t.otpLabel.value} ${index + 1}`}
-              className="w-11 h-13 text-center text-xl font-semibold text-neutral-900 bg-surface-lowest border border-outline rounded-lg focus:outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-100 transition-colors"
+              className="w-0 min-w-0 flex-1 max-w-11 h-13 text-center text-xl font-semibold text-neutral-900 bg-surface-lowest border border-outline rounded-lg focus:outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-100 transition-colors"
             />
           ))}
         </div>

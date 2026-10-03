@@ -116,6 +116,9 @@ exports.register = asyncHandler(async (req, res) => {
   // Return user without password — deliberately NO token yet.
   const userObject = newUser.toObject();
   delete userObject.password;
+  delete userObject.emailVerificationToken;
+  delete userObject.emailVerificationExpires;
+  delete userObject.emailVerificationAttempts;
 
   return sendCreated(
     res,

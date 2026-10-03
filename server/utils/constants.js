@@ -17,6 +17,7 @@ const SENSITIVE_USER_FIELDS = [
   'resetPasswordToken',
   'resetPasswordExpires',
   'emailVerificationToken',
+  'emailVerificationAttempts',
   'emailVerificationExpires',
   'emailVerificationRequired',
   'googleId',
