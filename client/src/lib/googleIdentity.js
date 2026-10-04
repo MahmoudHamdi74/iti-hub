@@ -9,6 +9,8 @@ export function registerGoogleIdentity(api, clientId, listener) {
   if (initializedApi !== api || initializedClientId !== clientId) {
     api.initialize({
       client_id: clientId,
+      // Supported browsers mediate sign-in instead of relying on a JS popup.
+      use_fedcm_for_button: true,
       callback: response => {
         if (response?.credential) activeListener?.success(response.credential);
         else activeListener?.error(new Error('Google Sign-In returned no credential'));

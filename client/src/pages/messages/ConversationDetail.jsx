@@ -71,13 +71,26 @@ export function ConversationDetail() {
     currentUser?._id
   );
 
-  // Mark messages as seen when conversation opens (only once per conversation)
+  const newestIncomingId = messagesData?.pages?.[0]?.data?.messages
+    ?.find(message => (message.sender?._id || message.sender) !== currentUser?._id)?._id;
+  const { mutate: markSeen } = markAsSeen;
+  // Mark new arrivals as read only while this conversation is visible.
   useEffect(() => {
-    if (conversationId && currentUser?._id && markedAsSeenRef.current !== conversationId) {
-      markedAsSeenRef.current = conversationId;
-      markAsSeen.mutate({ conversationId });
-    }
-  }, [conversationId, currentUser?._id]);
+    const markVisible = () => {
+      if (!conversationId || !currentUser?._id || !messagesData || document.visibilityState === 'hidden') return;
+      const marker = `${conversationId}:${newestIncomingId || 'empty'}`;
+      if (markedAsSeenRef.current === marker) return;
+      markedAsSeenRef.current = marker;
+      markSeen({ conversationId }, { onError: () => { markedAsSeenRef.current = null; } });
+    };
+    markVisible();
+    window.addEventListener('focus', markVisible);
+    document.addEventListener('visibilitychange', markVisible);
+    return () => {
+      window.removeEventListener('focus', markVisible);
+      document.removeEventListener('visibilitychange', markVisible);
+    };
+  }, [conversationId, currentUser?._id, newestIncomingId, messagesData, markSeen]);
 
   // Handle send message - MEMOIZED
   const handleSend = useCallback(({ content, image }) => {

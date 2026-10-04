@@ -8,6 +8,7 @@ dist/
 build/
 tmp/
 temp/
+.private-backups/
 
 # Angular specific
 .angular/
@@ -70,6 +71,7 @@ pnpm-lock.yaml
 !docs/work-order-audit.md
 !docs/work-order-verification.md
 !docs/production-deployment.md
+!docs/auth-and-route-audit.md
 
 # Agent/tool state directories (local only)
 .freebuff/

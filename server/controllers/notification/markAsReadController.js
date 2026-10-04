@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 const { ValidationError, NotFoundError } = require('../../utils/errors');
 const { sendSuccess } = require('../../utils/responseHelpers');
+const { emitNotificationCount } = require('../../utils/socketEvents');
 
 /**
  * Mark Notification as Read
@@ -31,6 +32,7 @@ const markAsRead = asyncHandler(async (req, res) => {
   // Populate actor and target for response
   await notification.populate('actor', 'username fullName profilePicture bio');
   await notification.populate('target');
+  emitNotificationCount(userId.toString(), await Notification.getUnreadCount(userId));
   
   sendSuccess(res, {
     message: 'Notification marked as read',

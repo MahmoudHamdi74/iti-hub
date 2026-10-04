@@ -39,9 +39,9 @@ export function generateUsernameSuggestions(email) {
     suggestions.push(`${prefix}${randomSuffix}`);
   }
 
-  // Filter out suggestions that are too long (max 20 chars)
+  // Match the server's username length limit.
   return suggestions
-    .filter(s => s.length >= 3 && s.length <= 20)
+    .filter(s => s.length >= 3 && s.length <= 30)
     .slice(0, 5);
 }
 
@@ -53,7 +53,7 @@ export function generateUsernameSuggestions(email) {
 export function validatePassword(password) {
   return {
     minLength: password.length >= 8,
-    hasLetter: /[a-zA-Z]/.test(password),
+    hasLetter: /[a-z]/.test(password),
     hasNumber: /\d/.test(password),
     hasSpecial: /[!@#$%^&*(),.?":{}|<>]/.test(password),
   };
@@ -75,8 +75,8 @@ export function isPasswordValid(password) {
  * @returns {object} Validation result
  */
 export function validateUsername(username) {
-  const validFormat = /^[a-zA-Z0-9_-]+$/.test(username);
-  const validLength = username.length >= 3 && username.length <= 20;
+  const validFormat = /^[a-zA-Z0-9_]+$/.test(username);
+  const validLength = username.length >= 3 && username.length <= 30;
   
   return {
     valid: validFormat && validLength,

@@ -59,11 +59,11 @@ function errorHandler(err, req, res, next) {
 
   // Handle Mongoose duplicate key error
   if (err.code === 11000) {
-    const field = Object.keys(err.keyValue)[0];
+    const field = Object.keys(err.keyValue || err.keyPattern || {})[0] || 'Value';
     return res.status(409).json({
       success: false,
       error: {
-        code: 'DUPLICATE_ENTRY',
+        code: field === 'email' ? 'EMAIL_EXISTS' : field === 'username' ? 'USERNAME_EXISTS' : 'DUPLICATE_ENTRY',
         message: `${field} already exists`,
         field
       }

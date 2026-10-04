@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { FaCamera, FaUserPlus, FaBan } from 'react-icons/fa';
+import { FaCamera, FaUserPlus, FaBan, FaRegEnvelope } from 'react-icons/fa';
 import { useIntlayer } from 'react-intlayer';
 import { toast } from 'react-hot-toast';
 import { useUploadProfilePicture, useUploadCoverImage } from '@hooks/mutations/useUserMutations';
@@ -8,10 +8,11 @@ import { useAuthStore } from '@store/auth';
 import useRequireAuth from '@hooks/useRequireAuth';
 import EditProfile from './EditProfile';
 import ConfirmDialog from '@components/common/ConfirmDialog';
+import { useCreateConversation } from '@hooks/mutations/useCreateConversation';
+import ProfilePhotoViewer from './ProfilePhotoViewer';
 
 const ProfileHeader = ({ profile, isOwnProfile }) => {
-  const [showCoverUpload, setShowCoverUpload] = useState(false);
-  const [showProfileUpload, setShowProfileUpload] = useState(false);
+  const [showPhoto, setShowPhoto] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const coverInputRef = useRef(null);
@@ -19,7 +20,7 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
   const { requireAuth } = useRequireAuth();
   
   const { 
-    editProfile, follow, following, block, unblock, 
+    editProfile, follow, followBack, following, block, unblock, messageUser, viewPhoto,
     updateCoverPhoto, fileSizeError, failedToUploadCover, 
     failedToUploadProfilePicture, failedToUpdateFollowStatus,
     failedToUpdateBlockStatus, confirmBlock, confirmUnblock, loading
@@ -31,6 +32,9 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
   const { toggleFollow, isLoading: isFollowLoading } = useToggleFollow();
   const { toggleBlock, isLoading: isBlockLoading } = useToggleBlock();
   const setUser = useAuthStore((state) => state.setUser);
+  const currentUser = useAuthStore((state) => state.user);
+  const photo = isOwnProfile ? currentUser?.profilePicture || profile?.profilePicture : profile?.profilePicture;
+  const createConversation = useCreateConversation();
 
   const handleCoverUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -61,11 +65,13 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
     try {
       const result = await uploadProfileMutation.mutateAsync(file);
       if (result.data?.user) {
-        setUser(result.data.user);
+        setUser({ ...useAuthStore.getState().user, ...result.data.user });
       }
     } catch (error) {
       console.error('Upload failed:', error);
       toast.error(failedToUploadProfilePicture);
+    } finally {
+      e.target.value = '';
     }
   };
 
@@ -99,9 +105,7 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
     <div className="bg-neutral-100 border border-outline shadow-elevation-1 rounded-2xl overflow-hidden mb-4">
       {/* Cover Image */}
       <div 
-        className="relative h-44 bg-gradient-to-r from-neutral-900 via-primary-900 to-primary-700 group"
-        onMouseEnter={() => isOwnProfile && setShowCoverUpload(true)}
-        onMouseLeave={() => setShowCoverUpload(false)}
+        className="relative h-32 sm:h-44 bg-gradient-to-r from-neutral-900 via-primary-900 to-primary-700 group"
       >
         {profile?.coverImage ? (
           <img
@@ -119,14 +123,15 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
         )}
         
         {/* Cover Upload Button - Only for own profile */}
-        {isOwnProfile && showCoverUpload && (
+        {isOwnProfile && (
           <button
             onClick={() => coverInputRef.current?.click()}
-            className="absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity"
+            className="absolute end-3 top-3 min-h-11 rounded-full bg-black/60 px-3 py-2 flex items-center justify-center"
+            aria-label={updateCoverPhoto.value}
           >
             <div className="flex items-center gap-2 text-white">
               <FaCamera className="w-6 h-6" />
-              <span className="font-medium">{updateCoverPhoto}</span>
+              <span className="hidden sm:inline font-medium">{updateCoverPhoto}</span>
             </div>
           </button>
         )}
@@ -141,18 +146,14 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
       </div>
 
       {/* Profile Info Container */}
-      <div className="px-6 pb-6">
-        <div className="flex items-end justify-between -mt-14 mb-3">
+      <div className="px-4 sm:px-6 pb-5">
+        <div className="relative flex flex-wrap items-end justify-between gap-3 -mt-10 sm:-mt-14 mb-3">
           {/* Profile Picture */}
-          <div 
-            className="relative group"
-            onMouseEnter={() => isOwnProfile && setShowProfileUpload(true)}
-            onMouseLeave={() => setShowProfileUpload(false)}
-          >
-            <div className="w-28 h-28 rounded-2xl border-4 border-neutral-100 shadow-elevation-2 overflow-hidden bg-neutral-200">
-              {profile?.profilePicture ? (
+          <div className="relative shrink-0">
+            <button type="button" data-no-lightbox onClick={() => setShowPhoto(true)} aria-label={viewPhoto.value} className="block w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-neutral-100 shadow-elevation-2 overflow-hidden bg-neutral-200">
+              {photo ? (
                 <img
-                  src={profile.profilePicture}
+                  src={photo}
                   alt={profile.fullName}
                   className="w-full h-full object-cover"
                 />
@@ -161,17 +162,7 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
                   {profile?.fullName?.[0]?.toUpperCase() || '?'}
                 </div>
               )}
-            </div>
-
-            {/* Profile Picture Upload Button - Only for own profile */}
-            {isOwnProfile && showProfileUpload && (
-              <button
-                onClick={() => profileInputRef.current?.click()}
-                className="absolute inset-0 rounded-2xl bg-black/50 flex items-center justify-center"
-              >
-                <FaCamera className="w-8 h-8 text-white" />
-              </button>
-            )}
+            </button>
 
             <input
               ref={profileInputRef}
@@ -183,7 +174,7 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2.5 mb-3">
+          <div className="flex flex-wrap gap-2 max-w-full mb-1">
             {isOwnProfile ? (
               // Own Profile Actions
               <button 
@@ -195,6 +186,7 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
             ) : (
               // Other User Actions
               <>
+                {!profile?.isBlocked && <button type="button" disabled={createConversation.isPending} onClick={() => requireAuth(() => createConversation.mutate({ participantId: profile._id }))} className="flex min-h-11 items-center gap-2 rounded-full border border-outline px-4 py-2 font-semibold text-button hover:bg-neutral-200 disabled:opacity-50"><FaRegEnvelope className="h-4 w-4" />{messageUser}</button>}
                 {/* Only show Follow button if user is NOT blocked */}
                 {!profile?.isBlocked && (
                   <button
@@ -214,7 +206,7 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
                     ) : (
                       <>
                         <FaUserPlus className="w-4 h-4" />
-                        {profile?.isFollowing ? following : follow}
+                        {profile?.isFollowing ? following : profile?.followsYou ? followBack : follow}
                       </>
                     )}
                   </button>
@@ -247,7 +239,7 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
         </div>
 
         {/* User Info */}
-        <div>
+        <div className="break-words [overflow-wrap:anywhere]">
           <h1 className="text-heading-3 font-bold text-neutral-900 tracking-tight">
             {profile?.fullName}
           </h1>
@@ -278,6 +270,8 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
           )}
         </div>
       </div>
+
+      <ProfilePhotoViewer open={showPhoto} onClose={() => setShowPhoto(false)} src={photo} name={profile?.fullName} uploading={uploadProfileMutation.isPending} onEdit={isOwnProfile ? () => profileInputRef.current?.click() : undefined} />
 
       {/* Edit Profile Modal */}
       {showEditProfile && (

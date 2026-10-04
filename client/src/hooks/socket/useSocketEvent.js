@@ -25,13 +25,13 @@ import { useSocket } from './useSocket';
  * }
  */
 export const useSocketEvent = (eventName, handler, dependencies = []) => {
-  const { socket, isConnected } = useSocket();
+  const { socket } = useSocket();
 
   // Memoize the handler to prevent unnecessary re-subscriptions
   const memoizedHandler = useCallback(handler, dependencies);
 
   useEffect(() => {
-    if (!socket || !isConnected) {
+    if (!socket) {
       if (import.meta.env.DEV) {
         console.log(`[useSocketEvent] Socket not connected, skipping listener for '${eventName}'`);
       }
@@ -54,7 +54,7 @@ export const useSocketEvent = (eventName, handler, dependencies = []) => {
         socket.off(eventName, memoizedHandler);
       }
     };
-  }, [socket, isConnected, eventName, memoizedHandler]);
+  }, [socket, eventName, memoizedHandler]);
 };
 
 export default useSocketEvent;

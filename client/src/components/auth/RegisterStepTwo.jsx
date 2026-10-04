@@ -18,7 +18,7 @@ export default function RegisterStepTwo({
   const [showAvailability, setShowAvailability] = useState(false);
 
   useEffect(() => {
-    if (username && username.length >= 3 && username.length <= 20) {
+    if (username && username.length >= 3 && username.length <= 30) {
       setShowAvailability(true);
     } else {
       setShowAvailability(false);

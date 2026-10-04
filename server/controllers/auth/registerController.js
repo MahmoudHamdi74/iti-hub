@@ -15,7 +15,10 @@ const { getOtpEmailTemplate } = require('../../utils/emailTemplates');
  * @returns { success, message, data: { user, token } } or error
  */
 exports.register = asyncHandler(async (req, res) => {
-  const { email, password, username, fullName } = req.body;
+  const { password } = req.body;
+  const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  const username = typeof req.body.username === 'string' ? req.body.username.trim().toLowerCase() : '';
+  const fullName = typeof req.body.fullName === 'string' ? req.body.fullName.trim() : '';
 
   // Validation object to collect all errors
   const validationErrors = {};
@@ -28,7 +31,7 @@ exports.register = asyncHandler(async (req, res) => {
   }
 
   // Validate password
-  if (!password) {
+  if (!password || typeof password !== 'string') {
     validationErrors.password = "Password is required";
   } else {
     if (password.length < 8) {
@@ -72,6 +75,9 @@ exports.register = asyncHandler(async (req, res) => {
   // Check if email already exists
   const existingEmail = await User.findOne({ email: email.toLowerCase() });
   if (existingEmail) {
+    if (existingEmail.emailVerificationRequired && !existingEmail.isEmailVerified && !existingEmail.isBlocked) {
+      throw new ConflictError('This account is awaiting email verification. Continue with your verification code or request a new one.', 'EMAIL_VERIFICATION_REQUIRED');
+    }
     throw new ConflictError("Email is already registered", "EMAIL_EXISTS");
   }
 

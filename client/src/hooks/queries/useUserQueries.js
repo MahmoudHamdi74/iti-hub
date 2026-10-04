@@ -13,7 +13,7 @@ export const useGetUserProfile = (username) => {
       return response.data;
     },
     enabled: !!username,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Relationship flags may have changed since the last visit.
     retry: 2,
   });
 };

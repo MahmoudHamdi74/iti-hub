@@ -3,6 +3,9 @@ import { t } from "intlayer";
 export default {
   key: "profile",
   content: {
+    messageUser: t({ en: "Message", ar: "مراسلة" }),
+    viewPhoto: t({ en: "View profile photo", ar: "عرض صورة الملف الشخصي" }),
+    closePhoto: t({ en: "Close photo", ar: "إغلاق الصورة" }),
     // Profile Header
     editProfile: t({
       en: "Edit Profile",

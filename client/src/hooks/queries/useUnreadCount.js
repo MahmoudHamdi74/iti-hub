@@ -31,7 +31,8 @@ export const useUnreadCount = () => {
     },
     enabled: isAuthenticated,
     staleTime: 0, // Always fresh - will be updated via socket
-    refetchOnWindowFocus: false, // Socket handles real-time updates
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000, // Recover missed events when the realtime connection is unavailable.
   });
 };
 

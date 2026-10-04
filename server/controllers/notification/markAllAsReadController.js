@@ -1,6 +1,7 @@
 const Notification = require('../../models/Notification');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 const { sendSuccess } = require('../../utils/responseHelpers');
+const { emitNotificationCount } = require('../../utils/socketEvents');
 
 /**
  * Mark All Notifications as Read
@@ -18,6 +19,7 @@ const markAllAsRead = asyncHandler(async (req, res) => {
   
   // Get updated unread count (should be 0)
   const unreadCount = await Notification.getUnreadCount(userId);
+  emitNotificationCount(userId.toString(), unreadCount);
   
   sendSuccess(res, {
     message: 'All notifications marked as read',

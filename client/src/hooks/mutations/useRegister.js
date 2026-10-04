@@ -9,9 +9,9 @@ export const useRegister = () => {
   return useMutation({
     mutationFn: async ({ email, username, firstName, lastName, password }) => {
       const response = await api.post('/auth/register', {
-        email,
-        fullName: `${firstName} ${lastName}`,
-        username,
+        email: email.trim().toLowerCase(),
+        fullName: `${firstName} ${lastName}`.trim(),
+        username: username.trim().toLowerCase(),
         password,
       });
       return response;

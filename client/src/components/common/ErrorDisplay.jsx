@@ -1,7 +1,9 @@
 import { HiOutlineExclamationCircle } from "react-icons/hi2";
 import Button from "./Button";
 
-export default function ErrorDisplay({ error, onRetry, className = "" }) {
+export default function ErrorDisplay({ error, message, onRetry, className = "" }) {
+  const apiError = error?.response?.data?.error;
+  error = apiError || error || (message ? { message } : null);
   if (!error) return null;
 
   return (
@@ -34,9 +36,9 @@ export default function ErrorDisplay({ error, onRetry, className = "" }) {
           )}
 
           {/* Field-specific Errors */}
-          {error.fields && (
+          {(error.fields || error.details?.fields) && (
             <ul className="mt-2 space-y-1">
-              {Object.entries(error.fields).map(([field, message]) => (
+              {Object.entries(error.fields || error.details.fields).map(([field, message]) => (
                 <li key={field} className="text-sm text-neutral-700">
                   • {message}
                 </li>

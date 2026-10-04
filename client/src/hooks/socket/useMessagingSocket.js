@@ -59,7 +59,7 @@ export const useMessagingSocket = (conversationId) => {
 
         // Check if message already exists (from optimistic update or duplicate event)
         const existingMessage = firstPage.data.messages.find(
-          (msg) => msg._id === messageId || (msg.content === content && msg.sender?._id === senderId)
+          (msg) => msg._id === messageId
         );
 
         if (existingMessage) {

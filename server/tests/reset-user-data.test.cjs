@@ -1,0 +1,47 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const zlib = require('node:zlib');
+const mongoose = require('mongoose');
+const { MongoMemoryReplSet } = require('mongodb-memory-server');
+const { resetUserData, inventory } = require('../scripts/resetUserData.cjs');
+
+test('cleanup keeps catalog and admins, removes user data and dangling memberships, backs up original documents', async t => {
+  const server = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
+  await mongoose.connect(server.getUri());
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'iti-cleanup-test-'));
+  t.after(async () => {
+    await mongoose.disconnect(); await server.stop();
+    assert.ok(path.resolve(dir).startsWith(path.join(os.tmpdir(), 'iti-cleanup-test-')));
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const db = mongoose.connection.db;
+  const admin = new mongoose.Types.ObjectId(), user = new mongoose.Types.ObjectId();
+  const branch = { _id: new mongoose.Types.ObjectId(), name: 'Preserved Branch' };
+  const round = { _id: new mongoose.Types.ObjectId(), branchId: branch._id, name: 'Preserved Round' };
+  await db.collection('users').insertMany([{ _id: admin, role: 'super_admin', password: 'original-hash', postsCount: 5 }, { _id: user, role: 'student' }]);
+  await db.collection('branches').insertOne(branch);
+  await db.collection('rounds').insertOne(round);
+  await db.collection('tracks').insertOne({ name: 'Preserved Track', roundId: round._id, branchId: branch._id, studentIds: [user], instructorIds: [admin], adminId: user });
+  await db.collection('posts').insertOne({ author: user, content: 'delete me' });
+  await db.collection('communities').insertOne({ owner: user });
+  const result = await resetUserData(mongoose.connection, dir);
+  assert.equal(result.after.counts.users, 1);
+  assert.equal(result.after.counts.posts, 0);
+  assert.equal(result.after.counts.communities, 0);
+  assert.deepEqual(await db.collection('branches').findOne({}), branch);
+  assert.deepEqual(await db.collection('rounds').findOne({}), round);
+  const track = await db.collection('tracks').findOne({});
+  assert.equal(track.name, 'Preserved Track');
+  assert.deepEqual(track.studentIds, []);
+  assert.deepEqual(track.instructorIds, [admin]);
+  assert.equal(track.adminId, null);
+  assert.equal((await db.collection('users').findOne({})).password, 'original-hash');
+  const backup = mongoose.mongo.BSON.EJSON.parse(zlib.gunzipSync(fs.readFileSync(result.backupPath)).toString());
+  assert.equal(backup.collections.users.length, 2);
+  assert.equal(backup.collections.posts[0].content, 'delete me');
+  await db.collection('unknown_records').insertOne({ value: 'keep' });
+  await assert.rejects(inventory(db), /Unclassified/);
+});

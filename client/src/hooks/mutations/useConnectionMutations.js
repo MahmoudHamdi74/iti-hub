@@ -15,8 +15,8 @@ export const useFollowUser = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['userProfile']);
-      queryClient.invalidateQueries(['feed']);
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
     },
   });
 };
@@ -35,8 +35,8 @@ export const useUnfollowUser = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['userProfile']);
-      queryClient.invalidateQueries(['feed']);
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
     },
   });
 };
@@ -56,8 +56,8 @@ export const useBlockUser = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['userProfile']);
-      queryClient.invalidateQueries(['feed']);
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
     },
   });
 };
@@ -76,7 +76,7 @@ export const useUnblockUser = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['userProfile']);
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     },
   });
 };

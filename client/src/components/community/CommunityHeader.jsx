@@ -146,10 +146,10 @@ const CommunityHeader = ({
           </div>
 
           {/* Community Info & Actions */}
-          <div className="flex-1 flex flex-col md:flex-row md:items-end justify-between gap-4 pt-4 md:pt-0">
+          <div className="w-full min-w-0 flex-1 flex flex-col md:flex-row md:flex-wrap md:items-end justify-between gap-4 pt-4 md:pt-0">
             {/* Community Name & Stats */}
             <div>
-              <h1 className="text-heading-2 text-neutral-900 font-bold mb-2">
+              <h1 className="text-heading-2 text-neutral-900 font-bold mb-2 break-words">
                 {community.name}
               </h1>
               <div className="flex items-center gap-4 text-body-2 text-neutral-600">
@@ -160,7 +160,7 @@ const CommunityHeader = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               {/* Create Post Button - Available for all joined members */}
               {isJoined && (
                 <Button

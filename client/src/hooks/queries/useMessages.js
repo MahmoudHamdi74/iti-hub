@@ -72,9 +72,10 @@ export const useMessages = (conversationId, options = {}) => {
     enabled: !!conversationId && isAuthenticated,
     staleTime: 30 * 1000, // 30 seconds - messages are fairly static, socket handles real-time updates
     gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache
-    refetchOnWindowFocus: false, // Don't refetch on focus - socket handles updates
-    refetchOnMount: false, // Don't refetch on mount if data exists
-    refetchOnReconnect: false, // Don't refetch on reconnect - socket will update
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000, // Recover missed events when the realtime connection is unavailable.
+    refetchOnMount: true,
+    refetchOnReconnect: true,
   });
 };
 
