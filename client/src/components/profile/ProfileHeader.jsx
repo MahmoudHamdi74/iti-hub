@@ -20,7 +20,7 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
   const { requireAuth } = useRequireAuth();
   
   const { 
-    editProfile, follow, following, block, unblock, messageUser, viewPhoto,
+    editProfile, follow, followBack, following, block, unblock, messageUser, viewPhoto,
     updateCoverPhoto, fileSizeError, failedToUploadCover, 
     failedToUploadProfilePicture, failedToUpdateFollowStatus,
     failedToUpdateBlockStatus, confirmBlock, confirmUnblock, loading
@@ -206,7 +206,7 @@ const ProfileHeader = ({ profile, isOwnProfile }) => {
                     ) : (
                       <>
                         <FaUserPlus className="w-4 h-4" />
-                        {profile?.isFollowing ? following : follow}
+                        {profile?.isFollowing ? following : profile?.followsYou ? followBack : follow}
                       </>
                     )}
                   </button>

@@ -7,22 +7,21 @@ import ProfileHeader from '../src/components/profile/ProfileHeader';
 import { useAuthStore } from '../src/store/auth';
 import { useLoginModalStore } from '../src/hooks/useRequireAuth';
 
-const api = vi.hoisted(() => ({ post: vi.fn() }));
+const api = vi.hoisted(() => ({ post: vi.fn(), delete: vi.fn() }));
 vi.mock('@lib/api', () => ({ default: api }));
 vi.mock('react-intlayer', () => ({ useIntlayer: () => ({
   viewPhoto: { value: 'View profile photo' }, closePhoto: { value: 'Close photo' },
   updateProfilePicture: 'Update Profile Picture', updateCoverPhoto: 'Update cover',
-  messageUser: 'Message', editProfile: 'Edit Profile', follow: 'Follow', block: 'Block',
+  messageUser: 'Message', editProfile: 'Edit Profile', follow: 'Follow', followBack: 'Follow Back', following: 'Following', block: 'Block',
 }) }));
-vi.mock('@hooks/mutations/useConnectionMutations', () => ({ useToggleFollow: () => ({}), useToggleBlock: () => ({}) }));
 vi.mock('../src/components/profile/EditProfile', () => ({ default: () => null }));
 vi.mock('@components/common/ConfirmDialog', () => ({ default: () => null }));
 const profile = { _id: 'recipient', username: 'recipient', fullName: 'Recipient', profilePicture: 'https://example.test/photo.jpg' };
-function setup(own = false, authenticated = true) {
+function setup(own = false, authenticated = true, relationship = {}) {
   useAuthStore.setState({ isAuthenticated: authenticated, user: { ...profile, _id: own ? 'recipient' : 'sender', role: 'super_admin' } });
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(<QueryClientProvider client={client}><MemoryRouter><Routes>
-    <Route path="/" element={<ProfileHeader profile={profile} isOwnProfile={own} />} />
+    <Route path="/" element={<ProfileHeader profile={{ ...profile, ...relationship }} isOwnProfile={own} />} />
     <Route path="/messages/:id" element={<h1>Conversation opened</h1>} />
   </Routes></MemoryRouter></QueryClientProvider>);
 }
@@ -62,4 +61,17 @@ test('another user photo is viewable without an edit action', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'View profile photo' }));
   expect(await screen.findByRole('dialog')).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Update Profile Picture' })).toBeNull();
+});
+
+test.each([
+  [false, false, 'Follow'],
+  [true, false, 'Follow Back'],
+  [true, true, 'Following'],
+  [false, true, 'Following'],
+])('follow button reflects incoming=%s outgoing=%s', async (followsYou, isFollowing, label) => {
+  api.post.mockResolvedValue({ data: {} });
+  api.delete.mockResolvedValue({ data: {} });
+  setup(false, true, { followsYou, isFollowing });
+  fireEvent.click(screen.getByRole('button', { name: label, exact: true }));
+  await waitFor(() => expect(isFollowing ? api.delete : api.post).toHaveBeenCalledWith('/users/recipient/follow'));
 });

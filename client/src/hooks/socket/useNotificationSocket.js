@@ -4,8 +4,11 @@ import { useSocketEvent } from './useSocketEvent';
 
 export const useNotificationSocket = () => {
   const queryClient = useQueryClient();
-  const refresh = useCallback(() => {
+  const refresh = useCallback((event) => {
     queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    if (!event || event.notification?.type === 'follow') {
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+    }
   }, [queryClient]);
   const updateCount = useCallback(({ unreadCount }) => {
     if (!Number.isFinite(unreadCount)) return;
