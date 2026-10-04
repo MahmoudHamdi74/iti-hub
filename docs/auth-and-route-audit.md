@@ -2,6 +2,40 @@
 
 ## Findings and changes
 
+### Realtime unread counts and profile follow-up
+
+- The active layout never mounted the unread-count queries or rendered badges.
+  Navigation now displays red numbered notification/message badges on desktop,
+  the mobile top bar and mobile drawer, capped visually at `99+`.
+- Message events previously updated only one cached conversations page, so users
+  who had not opened that page could miss list/count updates. Both global event
+  handlers now refresh authoritative queries; listeners attach before connecting,
+  reconnect refreshes missed events, and 30-second polling/focus refresh recovers
+  when realtime transport is unavailable. Socket.IO starts with polling and can
+  upgrade to WebSocket.
+- Unread message counts sum messages rather than counting conversations. Reading
+  messages/notifications synchronizes badges on the reader's other devices.
+  Visible conversations mark newly arriving messages read, and messages sharing
+  text are deduplicated only by message ID.
+- Profiles include a Message action that creates or resumes a direct conversation
+  with authentication and existing blocking checks. Own profiles omit this action.
+  Clicking the avatar opens an accessible photo dialog; only the owner can edit.
+  Photo updates preserve session role fields. Mobile actions wrap, profile text
+  breaks within the viewport, and statistics use three compact columns.
+
+Validation for this follow-up: 25 client regression tests, 95 production dictionary
+tests, and the production build pass. Targeted ESLint has no errors (one existing
+generic `useSocketEvent` dependency warning). `npm run test:realtime` in `server`
+verifies real Socket.IO delivery over polling and WebSocket to two devices using
+isolated MongoDB, duplicate-text messages, unread totals and cross-device reads.
+The local production preview also verified live message/follow-notification
+badges, reading new messages while a conversation is open, and profile/photo/direct
+message actions at 320, 390 and 1440 pixels without overflow or runtime exceptions.
+Photo upload UI is tested with a mocked upload response; production media storage
+was not modified. Deploy both client and backend after merging.
+
+### Registration and route audit
+
 - Registration returned `EMAIL_EXISTS` / `USERNAME_EXISTS`, but the wizard only
   handled `EMAIL_TAKEN` / `USERNAME_TAKEN`. The shared error component displayed
   Axios's `ERR_BAD_REQUEST` wrapper rather than the API error. Both now handle

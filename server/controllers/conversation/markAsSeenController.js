@@ -58,22 +58,20 @@ exports.markConversationAsSeen = asyncHandler(async (req, res) => {
     }
   }
 
-  // Emit real-time "seen" event to other participants
+  // Include the reader so their other devices clear the unread badge too.
   try {
     const io = getSocketServer();
     if (io) {
       const participants = conversation.participants.map(p => p.toString());
       participants.forEach(participantId => {
-        if (participantId !== currentUserId.toString()) {
-          const socketIds = getUserSocketId(participantId);
-          socketIds.forEach(socketId => {
-            io.to(socketId).emit('message:seen', {
-              conversationId: conversationId,
-              userId: currentUserId.toString(),
-              timestamp: new Date()
-            });
+        const socketIds = getUserSocketId(participantId);
+        socketIds.forEach(socketId => {
+          io.to(socketId).emit('message:seen', {
+            conversationId,
+            userId: currentUserId.toString(),
+            timestamp: new Date()
           });
-        }
+        });
       });
     }
   } catch (socketError) {

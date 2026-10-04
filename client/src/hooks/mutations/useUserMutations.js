@@ -13,7 +13,7 @@ export const useUpdateProfile = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['userProfile']);
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     },
   });
 };
@@ -37,7 +37,7 @@ export const useUploadProfilePicture = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['userProfile']);
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     },
   });
 };
@@ -61,7 +61,7 @@ export const useUploadCoverImage = () => {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['userProfile']);
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
     },
   });
 };

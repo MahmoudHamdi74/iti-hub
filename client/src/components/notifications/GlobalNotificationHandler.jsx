@@ -32,9 +32,8 @@ import { useNotificationSocket } from '@hooks/socket/useNotificationSocket';
  */
 export const GlobalNotificationHandler = () => {
   // Setup socket event listeners
-  // NOTE: useSocketEvent (used internally) only attaches listeners while
-  // the authenticated socket is connected, so calling this hook
-  // unconditionally is safe and keeps React hook order stable.
+  // Mounted by Layout only for authenticated users. Listeners attach before
+  // connection completes so reconnect events cannot be missed.
   // This hook will:
   // - Listen for 'notification:new' events
   // - Listen for 'notification:update' events  

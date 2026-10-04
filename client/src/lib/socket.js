@@ -48,7 +48,7 @@ export const initializeSocket = (authToken) => {
     auth: {
       token: authToken,
     },
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,

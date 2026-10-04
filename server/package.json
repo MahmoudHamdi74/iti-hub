@@ -29,6 +29,7 @@
     "test:routes": "node --test --test-force-exit tests/routes-smoke.test.cjs",
     "test:cleanup": "node --test tests/reset-user-data.test.cjs",
     "test:google": "node --test tests/google-signin.test.cjs",
+    "test:realtime": "node --test tests/realtime-unread.test.cjs",
     "dev": "cross-env NODE_ENV=dev nodemon app.js"
   },
   "devDependencies": {

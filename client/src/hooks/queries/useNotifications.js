@@ -43,7 +43,8 @@ export const useNotifications = () => {
     initialPageParam: 1,
     enabled: isAuthenticated,
     staleTime: 30 * 1000, // 30 seconds - notifications should be fresh
-    refetchOnWindowFocus: false, // Socket handles real-time updates
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000, // Recover missed events when the realtime connection is unavailable.
   });
 };
 

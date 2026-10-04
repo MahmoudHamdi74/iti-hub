@@ -12,11 +12,21 @@ import { GlobalMessagingHandler } from '@components/messaging/GlobalMessagingHan
 import { useAuthStore } from '@store/auth';
 import PostComposerModal from '@components/post/PostComposerModal';
 import useRequireAuth from '@hooks/useRequireAuth';
+import { useUnreadCount } from '@hooks/queries/useUnreadCount';
+import { useUnreadMessagesCount } from '@hooks/queries/useUnreadMessagesCount';
+import UnreadBadge from '@components/common/UnreadBadge';
 
 export default function Layout() {
   const content = useIntlayer('sidebar');
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const user = useAuthStore(state => state.user);
+  const { data: notifications } = useUnreadCount();
+  const { data: messages } = useUnreadMessagesCount();
+  const unread = isAuthenticated ? {
+    notifications: notifications?.data?.unreadCount || 0,
+    messages: messages?.data?.unreadCount || 0,
+  } : {};
+  const navIcon = (item, size) => <span className="relative inline-flex shrink-0"><item.icon className={size} aria-hidden="true" /><UnreadBadge count={unread[item.id]} label={(item.id === 'messages' ? content.unreadMessages : content.unreadNotifications)?.value} /></span>;
   const [compose, setCompose] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
@@ -30,7 +40,7 @@ export default function Layout() {
   }, [menuOpen]);
   const links = menuItems;
   const mobileLinks = ['home', 'messages', 'notifications', 'communities'].map(id => menuItems.find(item => item.id === id)).filter(Boolean);
-  const navigation = (mobile = false) => links.map(item => <NavLink onClick={event => { setMenuOpen(false); if (!item.isPublic && !isAuthenticated) { event.preventDefault(); requireAuth(); } }} key={item.id} to={item.path} end={item.end} title={content[item.labelKey]?.value} className={({ isActive }) => `flex items-center gap-4 rounded-full px-4 py-3 hover:bg-neutral-100 ${isActive ? 'font-bold text-primary-600' : 'text-neutral-800'} ${mobile ? 'text-base' : 'text-xl'}`}><item.icon className="h-6 w-6 shrink-0" /><span className={mobile ? '' : 'hidden xl:inline'}>{content[item.labelKey]}</span></NavLink>);
+  const navigation = (mobile = false) => links.map(item => <NavLink onClick={event => { setMenuOpen(false); if (!item.isPublic && !isAuthenticated) { event.preventDefault(); requireAuth(); } }} key={item.id} to={item.path} end={item.end} title={content[item.labelKey]?.value} className={({ isActive }) => `flex items-center gap-4 rounded-full px-4 py-3 hover:bg-neutral-100 ${isActive ? 'font-bold text-primary-600' : 'text-neutral-800'} ${mobile ? 'text-base' : 'text-xl'}`}>{navIcon(item, "h-6 w-6")}<span className={mobile ? '' : 'hidden xl:inline'}>{content[item.labelKey]}</span></NavLink>);
   return <div className="min-h-screen bg-neutral-50 text-neutral-900">
     <header className="sticky top-0 z-30 border-b border-outline bg-neutral-50 lg:hidden">
       <div className="flex h-16 items-center justify-between px-4">
@@ -39,7 +49,7 @@ export default function Layout() {
       <SidebarSearch compact />
       </div>
       <nav aria-label={content.menu?.value || 'Navigation'} className="grid grid-cols-4">
-        {mobileLinks.map(item => <NavLink key={item.id} to={item.path} end={item.end} onClick={event => { setMenuOpen(false); if (!item.isPublic && !isAuthenticated) { event.preventDefault(); requireAuth(); } }} className={({ isActive }) => `flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 border-b-2 px-1 text-[11px] ${isActive ? 'border-primary-600 font-bold text-primary-600' : 'border-transparent text-neutral-500'}`}><item.icon className="h-5 w-5" aria-hidden="true" /><span>{content[item.labelKey]}</span></NavLink>)}
+        {mobileLinks.map(item => <NavLink key={item.id} to={item.path} end={item.end} onClick={event => { setMenuOpen(false); if (!item.isPublic && !isAuthenticated) { event.preventDefault(); requireAuth(); } }} className={({ isActive }) => `flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 border-b-2 px-1 text-[11px] ${isActive ? 'border-primary-600 font-bold text-primary-600' : 'border-transparent text-neutral-500'}`}>{navIcon(item, "h-5 w-5")}<span>{content[item.labelKey]}</span></NavLink>)}
       </nav>
     </header>
     {menuOpen && <div className="fixed inset-0 z-40 lg:hidden">
