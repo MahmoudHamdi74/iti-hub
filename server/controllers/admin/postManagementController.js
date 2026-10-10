@@ -1,9 +1,9 @@
+const { deletePostData } = require('../../utils/postLifecycle');
 /**
  * Admin Post Management Controller
  * Provides post listing and deletion for content moderation
  */
 const Post = require('../../models/Post');
-const Comment = require('../../models/Comment');
 const User = require('../../models/User');
 const { sendSuccess } = require('../../utils/responseHelpers');
 
@@ -122,20 +122,11 @@ const deletePost = async (req, res, next) => {
       });
     }
 
-    // Delete associated comments
-    const deletedComments = await Comment.deleteMany({ post: postId });
-
-    // Update author's post count
-    await User.findByIdAndUpdate(post.author, {
-      $inc: { postsCount: -1 }
-    });
-
-    // Delete post
-    await post.deleteOne();
+    const deleted = await deletePostData(post);
 
     return sendSuccess(res, {
       deletedPost: postId,
-      deletedComments: deletedComments.deletedCount
+      deletedComments: deleted.deletedComments
     }, 'Post deleted successfully');
   } catch (error) {
     next(error);

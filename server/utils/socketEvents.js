@@ -323,7 +323,16 @@ const emitNotificationCount = (userId, unreadCount) => {
   }
 };
 
+const emitNotificationRemoval = (recipientId) => {
+  const io = require('./socketServer').getIO();
+  if (!io) return;
+  for (const socketId of getUserSocketId(String(recipientId))) {
+    io.to(socketId).emit('notification:removed', {});
+  }
+};
+
 module.exports = {
+  emitNotificationRemoval,
   setupSocketEvents,
   clearTypingThrottle,
   emitNotification,

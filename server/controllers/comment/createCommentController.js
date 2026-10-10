@@ -71,13 +71,13 @@ const createComment = asyncHandler(async (req, res) => {
   try {
     if (parentCommentId && parentComment) {
       // This is a reply - notify the parent comment author
-      // target = parentComment (for navigation), groupingKey = postId (for grouping)
+      // target = reply (for navigation), groupingKey = postId (for grouping)
       //another future enchasment is to notify all the user who replied to the same comment
       await Notification.createOrUpdateNotification(
         parentComment.author._id,
         userId,
         NOTIFICATION_TYPES.REPLY,
-        parentComment._id, // target: navigate to parent comment
+        comment._id, // target: the reply that caused the notification
         postId             // groupingKey: group by post
       );
     } else {
