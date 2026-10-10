@@ -44,7 +44,7 @@ const getComments = asyncHandler(async (req, res) => {
 
   // Get comments
   const comments = await Comment.find(query)
-    .sort({ createdAt: -1 })
+    .sort({ createdAt: 1, _id: 1 })
     .skip(skip)
     .limit(limit)
     .populate('author', 'username fullName profilePicture');

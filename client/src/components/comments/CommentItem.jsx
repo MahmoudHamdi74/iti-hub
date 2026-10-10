@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ar';
 import 'dayjs/locale/en';
-import { HiHeart, HiOutlineHeart, HiEllipsisHorizontal, HiPencil, HiTrash } from 'react-icons/hi2';
+import { HiArrowUturnLeft, HiEllipsisHorizontal, HiPencil, HiTrash } from 'react-icons/hi2';
 import { useIntlayer } from 'react-intlayer';
 import { toast } from 'react-hot-toast';
 import { useUIStore } from '@store/uiStore';
@@ -66,7 +66,7 @@ export default function CommentItem({
   dayjs.locale(locale);
 
   // Fetch replies only when expanded
-  const { data: repliesData } = useCommentReplies(postId, comment._id, {
+  const { data: repliesData, fetchNextPage, hasNextPage, isFetchingNextPage } = useCommentReplies(postId, comment._id, {
     enabled: showReplies,
   });
 
@@ -78,7 +78,7 @@ export default function CommentItem({
   };
 
   const handleReplySubmit = (content) => {
-    createComment.mutate(
+    return createComment.mutateAsync(
       { 
         postId, 
         content, 
@@ -282,7 +282,7 @@ export default function CommentItem({
           )}
         </div>
 
-        <div className="flex items-center gap-4 mt-1 text-caption text-neutral-600">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-caption text-neutral-600">
           <button
             onClick={handleLike}
             className={`flex items-center gap-1 transition-colors ${
@@ -293,7 +293,8 @@ export default function CommentItem({
             {likeState.isLiked ? content.liked : content.like}
             {likeState.count > 0 && <span>{likeState.count}</span>}
           </button>
-          <button onClick={onReply} className="hover:text-primary-600">
+          <button type="button" onClick={() => requireAuth(onReply)} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 font-semibold text-primary-600 hover:bg-primary-50">
+            <HiArrowUturnLeft className="h-4 w-4" aria-hidden="true" />
             {content.reply}
           </button>
           <span>{dayjs(comment.createdAt).fromNow()}</span>
@@ -348,6 +349,7 @@ export default function CommentItem({
                     </p>
                   </div>
                   <div className="flex items-center gap-3 mt-1 text-caption text-neutral-600">
+                    <button type="button" onClick={() => requireAuth(onReply)} className="inline-flex min-h-10 items-center gap-1 font-semibold text-primary-600"><HiArrowUturnLeft className="h-4 w-4" aria-hidden="true" />{content.reply}</button>
                     <button
                       className="flex items-center gap-1 hover:text-red-600"
                       onClick={() => handleReplyLike(reply)}
@@ -365,6 +367,7 @@ export default function CommentItem({
         )}
 
         {/* Hide replies button */}
+        {showReplies && hasNextPage && <button type="button" disabled={isFetchingNextPage} onClick={() => fetchNextPage()} className="mt-2 min-h-10 text-primary-600 disabled:opacity-50">{isFetchingNextPage ? content.loadingReplies : content.viewReplies}</button>}
         {showReplies && comment.repliesCount > 0 && (
           <button
             onClick={() => setShowReplies(false)}

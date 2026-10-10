@@ -6,7 +6,7 @@
   "scripts": {
     "build:dic": "intlayer build",
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/build-seo.mjs",
     "test:production-translations": "node --test tests/production-translations.test.mjs",
     "test:features": "vitest run --config tests/features.config.mjs",
     "lint": "eslint .",

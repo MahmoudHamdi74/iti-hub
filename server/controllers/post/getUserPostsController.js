@@ -1,3 +1,4 @@
+const { getPostVisibility } = require('../../utils/postVisibility');
 const Post = require('../../models/Post');
 const User = require('../../models/User');
 const PostLike = require('../../models/PostLike');
@@ -17,6 +18,8 @@ const getUserPosts = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   const currentUserId = req.user?._id;
 
+  const visibility = await getPostVisibility(req.user?._id);
+
   // Pagination
   const page = parseInt(req.query.page) || DEFAULT_PAGE;
   const limit = Math.min(parseInt(req.query.limit) || DEFAULT_LIMIT, MAX_LIMIT);
@@ -29,7 +32,7 @@ const getUserPosts = asyncHandler(async (req, res) => {
   }
 
   // Get posts
-  const posts = await Post.find({ author: userId })
+  const posts = await Post.find({ $and: [{ author: userId }, visibility.filter] })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
@@ -37,7 +40,7 @@ const getUserPosts = asyncHandler(async (req, res) => {
     .populate('originalPost');
 
   // Get total count
-  const total = await Post.countDocuments({ author: userId });
+  const total = await Post.countDocuments({ $and: [{ author: userId }, visibility.filter] });
 
   // Check if current user has liked/saved each post
   const postsWithUserData = await Promise.all(

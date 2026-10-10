@@ -1,3 +1,4 @@
+const { getPostVisibility } = require('../../utils/postVisibility');
 const Post = require('../../models/Post');
 const Connection = require('../../models/Connection');
 const Enrollment = require('../../models/Enrollment');
@@ -34,8 +35,10 @@ const getFollowingFeed = asyncHandler(async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || DEFAULT_LIMIT, MAX_LIMIT);
   const skip = (page - 1) * limit;
 
+  const visibility = await getPostVisibility(currentUserId);
+
   // Generate cache key
-  const cacheKey = feedCache.generateCacheKey('following', currentUserId.toString(), page);
+  const cacheKey = feedCache.generateCacheKey('following', currentUserId.toString(), page) + `:limit:${limit}:visibility:${visibility.cacheScope}`;
 
   // Check cache
   try {
@@ -54,7 +57,7 @@ const getFollowingFeed = asyncHandler(async (req, res) => {
 
   // Fetch user connections and enrollments
   const [connections, enrollments] = await Promise.all([
-    Connection.find({ follower: currentUserId }),
+    Connection.find({ follower: currentUserId, type: 'follow' }),
     Enrollment.find({ user: currentUserId })
   ]);
 
@@ -97,7 +100,7 @@ const getFollowingFeed = asyncHandler(async (req, res) => {
   query.createdAt = { $gte: timeThreshold };
 
   // Fetch posts chronologically (no algorithmic sorting)
-  const posts = await Post.find(query)
+  const posts = await Post.find({ $and: [query, visibility.filter] })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
@@ -106,7 +109,7 @@ const getFollowingFeed = asyncHandler(async (req, res) => {
     .populate('community', 'name');
 
   // Get total count
-  const total = await Post.countDocuments(query);
+  const total = await Post.countDocuments({ $and: [query, visibility.filter] });
 
   // Build post responses with user-specific data
   const postsWithUserData = await Promise.all(

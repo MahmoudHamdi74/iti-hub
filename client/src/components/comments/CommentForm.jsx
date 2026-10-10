@@ -42,7 +42,7 @@ export default function CommentForm({
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder={t.placeholder.value}
-        className="flex-1 px-3 py-2 border border-neutral-300 rounded-lg resize-none focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+        className="min-w-0 flex-1 px-3 py-2 border border-neutral-300 rounded-lg resize-none focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
         rows={2}
         maxLength={1000}
         disabled={isSubmitting}

@@ -32,7 +32,7 @@ export default function CommentsSection({ postId, onClose, authorId }) {
   const comments = data?.pages.flatMap(page => page.data.comments) ?? [];
 
   const handleCommentSubmit = (content) => {
-    createComment.mutate({ postId, content });
+    return createComment.mutateAsync({ postId, content });
   };
 
   return (

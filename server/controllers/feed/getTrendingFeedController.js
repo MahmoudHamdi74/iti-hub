@@ -1,3 +1,4 @@
+const { getPostVisibility } = require('../../utils/postVisibility');
 const Post = require('../../models/Post');
 const feedAlgorithm = require('../../utils/feedAlgorithm');
 const feedCache = require('../../utils/feedCache');
@@ -28,9 +29,11 @@ const getTrendingFeed = asyncHandler(async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || DEFAULT_LIMIT, MAX_LIMIT);
   const skip = (page - 1) * limit;
 
+  const visibility = await getPostVisibility(currentUserId);
+
   // Generate cache key
   const userId = isAuthenticated ? currentUserId.toString() : 'public';
-  const cacheKey = feedCache.generateCacheKey('trending', userId, page);
+  const cacheKey = feedCache.generateCacheKey('trending', userId, page) + `:limit:${limit}:visibility:${visibility.cacheScope}`;
 
   // Check cache
   try {
@@ -58,12 +61,12 @@ const getTrendingFeed = asyncHandler(async (req, res) => {
   // Fetch more posts than needed for algorithmic sorting
   const fetchLimit = limit * 3; // Fetch 3x to have enough for sorting
 
-  const posts = await Post.find(query)
+  const posts = await Post.find({ $and: [query, visibility.filter] })
     .sort({ createdAt: -1 })
     .limit(fetchLimit)
 
   // Get total count
-  const total = await Post.countDocuments(query);
+  const total = await Post.countDocuments({ $and: [query, visibility.filter] });
 
   // Calculate trending scores and sort
   const userConnections = {

@@ -29,3 +29,42 @@ Google sign-in also requires the deployed frontend origin in the Google OAuth
 client's authorized JavaScript origins. Browser extensions blocking
 `accounts.google.com/gsi/log` and browser popup policies cannot be overridden by
 the application. Email sign-in remains available; CSP is not weakened.
+
+## Email, blocking, comments and SEO verification
+
+Gmail SMTP reads credentials from the backend environment. Gmail defaults to
+STARTTLS on port 587; optional EMAIL_SMTP_PORT=465 selects implicit TLS. Set
+FRONTEND_BASE_URL=https://www.itihub.tech in Azure so reset and verification buttons
+point to production. There is no localhost fallback. The reset email no longer
+contains a separate raw-link paragraph.
+
+Run `node scripts/checkEmail.cjs --verify` from the server directory in Azure to
+check configuration and SMTP authentication without sending mail. It reports only
+configuration presence and sanitized error codes. NODE_ENV=test intentionally
+suppresses delivery and must not be used in production.
+
+Previously reset/resend could return success after SMTP failed. They now return
+503; registration preserves the unverified account and tells the client delivery
+failed so the user can retry OTP. SMTP acceptance is not proof of inbox delivery.
+Local isolated tests sent real OTP/reset emails through Gmail; the recipient's
+pasted reset email confirms reset receipt. OTP inbox receipt and delivery from
+Azure remain unconfirmed. Azure SMTP logs/access are still needed to identify the
+production delivery failure; changing the port is not a confirmed diagnosis.
+
+Blocked authors and reposts of their posts are filtered before pagination across
+feeds, profiles, saved posts, search and direct post access. Cache keys include
+block state, and block/unblock invalidates client views. Comments and replies sort
+oldest first; visible reply controls preserve the existing single-level threads.
+Published photos keep their aspect ratio without a fixed minimum-height frame.
+
+The client build generates route-specific metadata shells, robots.txt and a sitemap
+for home, communities, branches and tracks. These are static metadata, not SSR of
+community content. Authentication/private pages are noindex. Explicit Vercel and
+Netlify rewrites and the Vite preview middleware serve the correct shell on direct
+extensionless URLs. Runtime canonical URLs exclude query parameters.
+
+Validation: 38 client feature tests, 95 production translation checks, backend
+mail-failure/block/comment integration tests and existing feature/realtime tests
+passed. The production build passed. Chrome production-preview checks cover
+320px, 390px and 1440px layouts, real reply submission, wide/portrait photos,
+metadata, sitemap and robots. No production database records were changed.

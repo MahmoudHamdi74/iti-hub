@@ -1,5 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@lib/api';
+const invalidateConnectionViews = queryClient => Promise.all(
+  ['userProfile', 'userPosts', 'posts', 'post', 'community', 'globalSearch', 'search', 'feed']
+    .map(key => queryClient.invalidateQueries({ queryKey: [key] }))
+);
+
 
 /**
  * Follow a user
@@ -14,10 +19,7 @@ export const useFollowUser = () => {
       const response = await api.post(`/users/${userId}/follow`);
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-      queryClient.invalidateQueries({ queryKey: ['feed'] });
-    },
+    onSuccess: () => invalidateConnectionViews(queryClient),
   });
 };
 
@@ -34,10 +36,7 @@ export const useUnfollowUser = () => {
       const response = await api.delete(`/users/${userId}/follow`);
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-      queryClient.invalidateQueries({ queryKey: ['feed'] });
-    },
+    onSuccess: () => invalidateConnectionViews(queryClient),
   });
 };
 
@@ -55,10 +54,7 @@ export const useBlockUser = () => {
       const response = await api.post(`/users/${userId}/block`);
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-      queryClient.invalidateQueries({ queryKey: ['feed'] });
-    },
+    onSuccess: () => invalidateConnectionViews(queryClient),
   });
 };
 
@@ -75,9 +71,7 @@ export const useUnblockUser = () => {
       const response = await api.delete(`/users/${userId}/block`);
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
-    },
+    onSuccess: () => invalidateConnectionViews(queryClient),
   });
 };
 

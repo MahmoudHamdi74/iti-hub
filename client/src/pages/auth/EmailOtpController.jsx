@@ -24,7 +24,7 @@ export default function EmailOtpController() {
     location.state?.email || new URLSearchParams(location.search).get('email') || '';
 
   const [digits, setDigits] = useState(Array(CODE_LENGTH).fill(''));
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(location.state?.emailDelivery === 'failed' ? t.deliveryFailed : null);
   const [resendNotice, setResendNotice] = useState(false);
 
   const verifyMutation = useVerifyOtp();

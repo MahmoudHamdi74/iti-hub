@@ -1,10 +1,11 @@
 const User = require("../../models/User");
 const crypto = require("crypto");
 const { asyncHandler } = require("../../middlewares/errorHandler");
-const { ValidationError, ForbiddenError } = require("../../utils/errors");
+const { ValidationError, ForbiddenError, APIError } = require("../../utils/errors");
 const { sendSuccess } = require("../../utils/responseHelpers");
 const sendEmail = require('../../utils/sendEmail');
 const { getOtpEmailTemplate, getEmailVerificationTemplate } = require('../../utils/emailTemplates');
+const frontendUrl = require('../../utils/frontendUrl');
 
 exports.verifyEmail = asyncHandler(async (req, res) => {
   const { token } = req.query;
@@ -64,8 +65,7 @@ exports.resendVerificationEmail = asyncHandler(async (req, res) => {
   const verificationToken = user.generateEmailVerificationToken();
   await user.save(); 
   
-  const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-  const verifyLink = `${frontendBaseUrl}/verify-email?token=${verificationToken}`;
+  const verifyLink = frontendUrl('/verify-email', { token: verificationToken });
   
   await sendEmail({
     to: user.email,
@@ -192,7 +192,8 @@ exports.resendOtp = asyncHandler(async (req, res) => {
         html: getOtpEmailTemplate(otp, user.fullName),
       });
     } catch (emailError) {
-      console.error("[resendOtp] OTP email send failed:", emailError.message);
+      console.error('[resendOtp] OTP email send failed:', { code: emailError.code, command: emailError.command, responseCode: emailError.responseCode });
+      throw new APIError('Email delivery is temporarily unavailable. Please try again later.', 503, 'EMAIL_DELIVERY_FAILED');
     }
   }
 

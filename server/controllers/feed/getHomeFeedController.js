@@ -1,3 +1,4 @@
+const { getPostVisibility } = require('../../utils/postVisibility');
 const Post = require('../../models/Post');
 const Connection = require('../../models/Connection');
 const CommunityMember = require('../../models/CommunityMember');
@@ -31,9 +32,11 @@ const getHomeFeed = asyncHandler(async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || DEFAULT_LIMIT, MAX_LIMIT);
   const skip = (page - 1) * limit;
 
+  const visibility = await getPostVisibility(currentUserId);
+
   // Generate cache key
   const userId = isAuthenticated ? currentUserId.toString() : 'public';
-  const cacheKey = feedCache.generateCacheKey('home', userId, page);
+  const cacheKey = feedCache.generateCacheKey('home', userId, page) + `:limit:${limit}:visibility:${visibility.cacheScope}`;
 
   // Check cache
   try {
@@ -56,7 +59,7 @@ const getHomeFeed = asyncHandler(async (req, res) => {
   if (isAuthenticated) {
     // Authenticated: Get posts NOT from followed users or joined communities
     const [connections, communityMembers] = await Promise.all([
-      Connection.find({ follower: currentUserId }),
+      Connection.find({ follower: currentUserId, type: 'follow' }),
       CommunityMember.find({ user: currentUserId })
     ]);
 
@@ -81,7 +84,7 @@ const getHomeFeed = asyncHandler(async (req, res) => {
     query.createdAt = { $gte: timeThreshold };
 
     // Pagination and fetch
-    posts = await Post.find(query)
+    posts = await Post.find({ $and: [query, visibility.filter] })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -89,13 +92,13 @@ const getHomeFeed = asyncHandler(async (req, res) => {
       .populate('originalPost')
       .populate('community', 'name');
 
-    total = await Post.countDocuments(query);
+    total = await Post.countDocuments({ $and: [query, visibility.filter] });
 
   } else {
     // Unauthenticated: Show recent posts (no featured tags filter until Tag system is implemented)
     const query = {};
 
-    posts = await Post.find(query)
+    posts = await Post.find({ $and: [query, visibility.filter] })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -103,7 +106,7 @@ const getHomeFeed = asyncHandler(async (req, res) => {
       .populate('originalPost')
       .populate('community', 'name');
 
-    total = await Post.countDocuments(query);
+    total = await Post.countDocuments({ $and: [query, visibility.filter] });
   }
 
   // Build post responses with user-specific data

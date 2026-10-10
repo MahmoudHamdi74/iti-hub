@@ -1,3 +1,4 @@
+const { invalidateUserFeeds } = require('../../utils/feedCache');
 const Connection = require('../../models/Connection');
 const { validateConnectionAction } = require('../../utils/connectionHelpers');
 const { asyncHandler } = require('../../middlewares/errorHandler');
@@ -27,6 +28,8 @@ const blockUser = asyncHandler(async (req, res) => {
   // Create block connection (this also removes follow relationships)
   const connection = await Connection.createBlock(requesterId, targetId);
   
+  await Promise.all([invalidateUserFeeds(String(requesterId)), invalidateUserFeeds(String(targetId))]);
+
   return sendSuccess(
     res,
     {
@@ -62,6 +65,7 @@ const unblockUser = asyncHandler(async (req, res) => {
   if (!removed) {
     throw new NotFoundError('Block relationship');
   }
+  await Promise.all([invalidateUserFeeds(String(requesterId)), invalidateUserFeeds(String(targetId))]);
   
   return sendSuccess(
     res,
