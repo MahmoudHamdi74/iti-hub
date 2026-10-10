@@ -49,9 +49,9 @@ const searchPosts = asyncHandler(async (req, res) => {
   // Add type filter if provided
   if (type) {
     if (type === "original") {
-      filter.repostOf = null;
+      filter.originalPost = null;
     } else if (type === "repost") {
-      filter.repostOf = { $ne: null };
+      filter.originalPost = { $ne: null };
     }
   }
 

@@ -52,3 +52,17 @@ test('identical message content with different IDs is delivered; duplicate ID is
   expect(client.getQueryData(['messages', 'abc']).pages[0].data.messages.map(m => m._id)).toEqual(['two', 'one']);
   client.clear();
 });
+
+test('deleting a notification refreshes the list and clears its unread badge', async () => {
+  state.socket = new EventEmitter(); state.notifications = 1;
+  useAuthStore.setState({ isAuthenticated: true });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(['notifications', 'list'], { items: ['old-alert'] });
+  render(<QueryClientProvider client={client}><Counts /></QueryClientProvider>);
+  await waitFor(() => expect(screen.getByTestId('notifications').textContent).toBe('1'));
+  state.notifications = 0;
+  act(() => state.socket.emit('notification:removed', {}));
+  await waitFor(() => expect(screen.getByTestId('notifications').textContent).toBe(''));
+  expect(client.getQueryState(['notifications', 'list']).isInvalidated).toBe(true);
+  client.clear();
+});

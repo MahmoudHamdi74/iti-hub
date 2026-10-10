@@ -24,6 +24,8 @@ const getNotifications = asyncHandler(async (req, res) => {
   
   const skip = (page - 1) * limit;
   
+  await Notification.pruneMissingTargets(userId);
+
   // Get total count for pagination
   const total = await Notification.countDocuments({ recipient: userId });
   

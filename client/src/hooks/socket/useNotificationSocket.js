@@ -18,6 +18,7 @@ export const useNotificationSocket = () => {
   }, [queryClient]);
   useSocketEvent('notification:new', refresh, [refresh]);
   useSocketEvent('notification:update', refresh, [refresh]);
+  useSocketEvent('notification:removed', refresh, [refresh]);
   useSocketEvent('notification:read', refresh, [refresh]);
   useSocketEvent('notification:count', updateCount, [updateCount]);
   useSocketEvent('connect', refresh, [refresh]);

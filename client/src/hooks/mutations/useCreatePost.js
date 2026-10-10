@@ -48,6 +48,10 @@ export const useCreatePost = () => {
       return response.data;
     },
     onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+      queryClient.invalidateQueries({ queryKey: ['community'] });
+      queryClient.invalidateQueries({ queryKey: ['post'] });
       // Invalidate all feed queries to show new post
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       
