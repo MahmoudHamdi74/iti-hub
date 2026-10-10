@@ -3,6 +3,7 @@ import { t } from "intlayer";
 export default {
   key: "authOtp",
   content: {
+    deliveryFailed: t({ en: 'Your account was created, but the email could not be sent. Please try Resend code shortly.', ar: 'تم إنشاء حسابك لكن تعذر إرسال الإيميل. حاول إعادة إرسال الكود بعد قليل.' }),
     pageTitle: t({
       en: "Verify your email",
       ar: "تأكيد البريد الإلكتروني",

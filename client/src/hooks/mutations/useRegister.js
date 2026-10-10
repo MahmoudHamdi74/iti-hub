@@ -13,7 +13,7 @@ export const useRegister = () => {
         fullName: `${firstName} ${lastName}`.trim(),
         username: username.trim().toLowerCase(),
         password,
-      });
+      }, { timeout: 45000 });
       return response;
     },
   });

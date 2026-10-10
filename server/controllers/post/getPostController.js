@@ -1,3 +1,4 @@
+const { getPostVisibility } = require('../../utils/postVisibility');
 const Post = require('../../models/Post');
 const PostLike = require('../../models/PostLike');
 const PostSave = require('../../models/PostSave');
@@ -15,8 +16,10 @@ const getPost = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const userId = req.user?._id;
 
+  const visibility = await getPostVisibility(userId);
+
   // Find post
-  const post = await Post.findById(id)
+  const post = await Post.findOne({ $and: [{ _id: id }, visibility.filter] })
     .populate('author', 'username fullName profilePicture')
     .populate('community', 'name profilePicture')
     .populate('originalPost');
@@ -36,7 +39,7 @@ const getPost = asyncHandler(async (req, res) => {
     const save = await PostSave.findOne({ user: userId, post: id });
     isSaved = !!save;
   }
-  postWithUserData = await buildPostResponse(post, userId);
+  const postWithUserData = await buildPostResponse(post, userId);
 
   sendSuccess(res, { post: postWithUserData });
 });

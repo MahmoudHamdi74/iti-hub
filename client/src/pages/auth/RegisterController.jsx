@@ -232,7 +232,7 @@ export default function RegisterController() {
           // The server no longer returns a token at registration — the user
           // must verify the 6-digit OTP emailed to them first (work order 3).
           const email = response.data.data?.email || formData.email;
-          navigate("/verify-otp", { state: { email } });
+          navigate("/verify-otp", { state: { email, emailDelivery: response.data.data?.emailDelivery } });
         },
         onError: (error) => {
           const errorCode = error.response?.data?.error?.code;

@@ -42,26 +42,26 @@ export default function ImageCarousel({ images, className = '' }) {
   if (!images || images.length === 0) return null;
 
   return (
-    <div dir="ltr" className={`relative max-h-135 w-full overflow-hidden ${className}`}>
+    <div dir="ltr" className={`relative w-full min-w-0 overflow-hidden ${className}`}>
       {/* Embla Viewport */}
       <div ref={emblaRef} className="overflow-hidden rounded-lg">
-        <div className="flex">
+        <div className="flex items-start">
           {images.map((image, index) => (
             <div
               key={index}
-              className="relative flex-[0_0_100%] min-w-0"
-              style={{ minHeight: "300px" }}
+              className="relative flex-[0_0_100%] min-w-0 bg-neutral-100"
             >
               <img
                 src={image}
                 alt={`Image ${index + 1} of ${images.length}`}
-                className={`w-full h-auto object-cover ${
+                className={`block w-full h-auto max-h-[75vh] sm:max-h-[540px] object-contain ${
                   imageLoading[index] ? "opacity-0" : "opacity-100"
                 } transition-opacity duration-200`}
                 onLoad={() =>
                   setImageLoading((prev) => ({ ...prev, [index]: false }))
                 }
                 loading="lazy"
+                onError={() => setImageLoading((prev) => ({ ...prev, [index]: false }))}
               />
 
               {/* Loading skeleton */}

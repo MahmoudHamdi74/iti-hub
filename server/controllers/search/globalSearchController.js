@@ -1,3 +1,4 @@
+const { getPostVisibility } = require('../../utils/postVisibility');
 const Branch = require('../../models/Branch');
 const Track = require('../../models/Track');
 const User = require('../../models/User');
@@ -94,7 +95,8 @@ const globalSearch = asyncHandler(async (req, res) => {
     .lean();
 
   // Posts (public — mirrors /search/posts)
-  const postsPromise = Post.find({ content: regex })
+  const visibility = await getPostVisibility(userId);
+  const postsPromise = Post.find({ $and: [{ content: regex }, visibility.filter] })
     .select('content createdAt')
     .sort({ createdAt: -1 })
     .limit(GROUP_LIMIT + 1)

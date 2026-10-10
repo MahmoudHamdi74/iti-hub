@@ -192,10 +192,6 @@ const getPasswordResetTemplate = (resetUrl, userName = '') => {
     footerText: `
       <p style="margin: 0 0 8px;"><strong>This password reset link will expire in 1 hour.</strong></p>
       <p style="margin: 0 0 16px;">If you didn't request a password reset, please ignore this email. Your password will remain unchanged.</p>
-      <p style="margin: 0;">If the button doesn't work, you can copy and paste this link into your browser:</p>
-      <p style="margin: 8px 0 0; word-break: break-all; color: #2563eb;">
-        <a href="${resetUrl}" style="color: #2563eb; text-decoration: none;">${resetUrl}</a>
-      </p>
     `
   });
 };

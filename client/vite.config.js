@@ -4,8 +4,24 @@ import { intlayer } from "vite-intlayer";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
+import { metadataRoutes } from './src/lib/seo.js';
+
+const metadataPreview = {
+  name: 'metadata-preview',
+  configurePreviewServer(server) {
+    server.middlewares.use((req, _res, next) => {
+      const url = new URL(req.url, 'http://localhost');
+      const route = url.pathname.replace(/\/+$/, '') || '/';
+      if (route !== '/' && metadataRoutes.includes(route)) {
+        req.url = route + '/index.html' + url.search;
+      }
+      next();
+    });
+  },
+};
+
 export default defineConfig({
-  plugins: [react(), tailwindcss(), intlayer()],
+  plugins: [metadataPreview, react(), tailwindcss(), intlayer()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

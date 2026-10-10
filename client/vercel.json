@@ -3,6 +3,98 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "headers": [{ "source": "/(.*)", "headers": [{ "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" }] }],
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin-allow-popups"
+        }
+      ]
+    },
+    {
+      "source": "/(login|register|verify-otp|verify-email|resend-verification|password-reset|settings|notifications|messages|saved|search|admin)(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/communities",
+      "destination": "/communities/index.html"
+    },
+    {
+      "source": "/branches",
+      "destination": "/branches/index.html"
+    },
+    {
+      "source": "/tracks",
+      "destination": "/tracks/index.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/login/index.html"
+    },
+    {
+      "source": "/register",
+      "destination": "/register/index.html"
+    },
+    {
+      "source": "/verify-otp",
+      "destination": "/verify-otp/index.html"
+    },
+    {
+      "source": "/verify-email",
+      "destination": "/verify-email/index.html"
+    },
+    {
+      "source": "/resend-verification",
+      "destination": "/resend-verification/index.html"
+    },
+    {
+      "source": "/password-reset/request",
+      "destination": "/password-reset/request/index.html"
+    },
+    {
+      "source": "/password-reset/confirm",
+      "destination": "/password-reset/confirm/index.html"
+    },
+    {
+      "source": "/search",
+      "destination": "/search/index.html"
+    },
+    {
+      "source": "/messages",
+      "destination": "/messages/index.html"
+    },
+    {
+      "source": "/notifications",
+      "destination": "/notifications/index.html"
+    },
+    {
+      "source": "/settings",
+      "destination": "/settings/index.html"
+    },
+    {
+      "source": "/saved",
+      "destination": "/saved/index.html"
+    },
+    {
+      "source": "/jobs",
+      "destination": "/jobs/index.html"
+    },
+    {
+      "source": "/events",
+      "destination": "/events/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }

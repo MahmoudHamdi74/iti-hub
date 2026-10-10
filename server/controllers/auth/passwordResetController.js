@@ -2,17 +2,18 @@ const User = require("../../models/User");
 const validator = require("validator");
 const crypto = require("crypto");
 const { asyncHandler } = require('../../middlewares/errorHandler');
-const { ValidationError, AuthenticationError } = require('../../utils/errors');
+const { ValidationError, AuthenticationError, APIError } = require('../../utils/errors');
 const { sendSuccess } = require('../../utils/responseHelpers');
 const sendEmail = require('../../utils/sendEmail');
 const { getPasswordResetTemplate } = require('../../utils/emailTemplates');
+const frontendUrl = require('../../utils/frontendUrl');
 
 /**
  * @route   POST /auth/password-reset/request
  * @desc    Request password reset - generates and sends reset token
  * @access  Public
  * @body    { email }
- * @returns { success, message } - Always success for security
+ * @returns { success, message } - Generic success for unknown accounts; 503 on email delivery failure
  */
 exports.requestPasswordReset = asyncHandler(async (req, res) => {
   const { email } = req.body;
@@ -23,7 +24,7 @@ exports.requestPasswordReset = asyncHandler(async (req, res) => {
   }
 
   // Find user by email
-  const user = await User.findOne({ email: String(email).toLowerCase() });
+  const user = await User.findOne({ email: String(email).trim().toLowerCase() });
 
   // For security: Always return success even if user not found
   if (!user) {
@@ -38,8 +39,7 @@ exports.requestPasswordReset = asyncHandler(async (req, res) => {
   const plainToken = await user.generatePasswordResetToken();
 
   // Create reset link and send email
-  const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 'http://localhost:5173';
-  const resetLink = `${frontendBaseUrl}/password-reset/confirm?token=${plainToken}`;
+  const resetLink = frontendUrl('/password-reset/confirm', { token: plainToken });
 
   try {
     await sendEmail({
@@ -48,8 +48,8 @@ exports.requestPasswordReset = asyncHandler(async (req, res) => {
       html: getPasswordResetTemplate(resetLink, user.fullName)
     });
   } catch (err) {
-    // Log for debugging but never leak whether the account exists
-    console.error('[password-reset] Email send failed:', err.message);
+    console.error('[password-reset] Email send failed:', { code: err.code, command: err.command, responseCode: err.responseCode });
+    throw new APIError('Email delivery is temporarily unavailable. Please try again later.', 503, 'EMAIL_DELIVERY_FAILED');
   }
 
   return sendSuccess(

@@ -21,7 +21,7 @@ export const useVerifyOtp = () => {
 export const useResendOtp = () => {
   return useMutation({
     mutationFn: async ({ email }) => {
-      const response = await api.post('/auth/resend-otp', { email });
+      const response = await api.post('/auth/resend-otp', { email }, { timeout: 45000 });
       return response;
     },
   });

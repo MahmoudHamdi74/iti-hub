@@ -1,3 +1,4 @@
+const { getPostVisibility } = require('../../utils/postVisibility');
 /**
  * Search Posts Controller
  * Epic 9: Search - T105
@@ -65,6 +66,9 @@ const searchPosts = asyncHandler(async (req, res) => {
     limit
   );
   const skip = (currentPage - 1) * pageLimit;
+
+  const visibility = await getPostVisibility(req.user?._id);
+  filter.$and = [...(filter.$and || []), visibility.filter];
 
   // Execute search with alphabetical sorting
   const posts = await Post.find(filter)

@@ -8,7 +8,7 @@ import api from '@lib/api';
 export const usePasswordResetRequest = () => {
   return useMutation({
     mutationFn: async ({ email }) => {
-      const response = await api.post('/auth/password-reset/request', { email });
+      const response = await api.post('/auth/password-reset/request', { email }, { timeout: 45000 });
       return response;
     },
   });

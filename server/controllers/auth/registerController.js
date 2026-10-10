@@ -107,8 +107,8 @@ exports.register = asyncHandler(async (req, res) => {
 
   await newUser.save();
 
-  // Send the OTP email, but never fail registration because of it:
-  // the user can request a new code from the verify page.
+  // Keep an unverified account recoverable without claiming a failed email was sent.
+  let emailDelivery = 'sent';
   try {
     await sendEmail({
       to: newUser.email,
@@ -116,7 +116,8 @@ exports.register = asyncHandler(async (req, res) => {
       html: getOtpEmailTemplate(otp, newUser.fullName)
     });
   } catch (emailError) {
-    console.error('[register] OTP email send failed:', emailError.message);
+    emailDelivery = 'failed';
+    console.error('[register] OTP email send failed:', { code: emailError.code, command: emailError.command, responseCode: emailError.responseCode });
   }
 
   // Return user without password — deliberately NO token yet.
@@ -128,7 +129,7 @@ exports.register = asyncHandler(async (req, res) => {
 
   return sendCreated(
     res,
-    { user: userObject, email: newUser.email },
-    "Account created. A verification code has been sent to your email."
+    { user: userObject, email: newUser.email, emailDelivery },
+    emailDelivery === 'sent' ? "Account created. A verification code has been sent to your email." : "Account created, but the email could not be sent. Please request another code."
   );
 });
