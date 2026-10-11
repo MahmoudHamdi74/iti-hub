@@ -185,7 +185,7 @@ export function MessageList({
       onScroll={handleScroll}
       data-testid="message-scroll"
       onLoadCapture={() => { if (pinned.current && scrollContainerRef.current) scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight; }}
-      className="flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 py-4 space-y-4"
+      className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-5 sm:px-6 lg:px-8 space-y-4"
     >
       {/* Load Older Messages Button - Intersection Observer Target */}
       {hasOlderMessages && (
@@ -206,7 +206,7 @@ export function MessageList({
 
       {/* Messages Grouped by Date */}
       {messageGroups.map((group) => (
-        <div key={group.date} className="space-y-2">
+        <div key={group.date} className="space-y-2 mx-auto w-full max-w-3xl">
           {/* Date Separator */}
           <div className="flex items-center justify-center my-4">
             <div className="bg-neutral-100 px-3 py-1 rounded-full">

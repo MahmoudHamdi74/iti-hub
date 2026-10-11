@@ -43,6 +43,7 @@ export function MessageInput({
       textareaRef.current.style.height = 'auto';
       const newHeight = Math.min(textareaRef.current.scrollHeight, 120); // Max 5 lines
       textareaRef.current.style.height = `${newHeight}px`;
+      textareaRef.current.style.overflowY = textareaRef.current.scrollHeight > 120 ? 'auto' : 'hidden';
     }
   }, [value]);
   
@@ -124,7 +125,7 @@ export function MessageInput({
   const canSend = (value.trim() || selectedImage) && !disabled && !sending;
 
   return (
-    <div className="shrink-0 border-t border-outline bg-neutral-100">
+    <div className="shrink-0 border-t border-outline bg-neutral-100 pb-[env(safe-area-inset-bottom)]">
       {replyTo && <div className="flex items-center gap-2 px-4 pt-3 text-sm" role="status"><div className="min-w-0 flex-1 border-s-2 border-primary-500 ps-3"><strong>{content.replyTo?.value || 'Reply to'} {replyTo.sender?.username}</strong><p className="truncate">{replyTo.content || content.photo?.value}</p></div><button type="button" aria-label={content.cancelReply?.value || 'Cancel reply'} onClick={onCancelReply}><HiOutlineXMark className="h-5 w-5" /></button></div>}
       {/* Image Preview */}
       {imagePreview && (
@@ -147,12 +148,12 @@ export function MessageInput({
       )}
 
       {/* Input Row */}
-      <div className="flex items-end gap-2 p-3">
+      <div className="flex items-end gap-2 p-3 sm:p-4 mx-auto w-full max-w-4xl">
         {/* Image Upload Button */}
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled || sending}
-          className="shrink-0 p-2 text-neutral-600 hover:text-secondary-600 hover:bg-secondary-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="shrink-0 p-3 text-neutral-600 hover:text-secondary-600 hover:bg-secondary-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label={content.attachImage.value}
         >
           <HiOutlinePhoto className="w-6 h-6" />
@@ -176,12 +177,12 @@ export function MessageInput({
           placeholder={content.messageInputPlaceholder.value}
           rows={1}
           className="
-            flex-1 resize-none
-            px-4 py-2
-            bg-neutral-100
+            flex-1 min-w-0 resize-none
+            px-4 py-3
+            bg-surface-high
             border border-transparent
             rounded-xl
-            text-body-2
+            text-base
             placeholder:text-neutral-500
             focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:bg-neutral-100
             disabled:opacity-50 disabled:cursor-not-allowed
@@ -195,7 +196,7 @@ export function MessageInput({
           disabled={!canSend}
           loading={sending}
           variant="primary"
-          className="shrink-0 rounded-full! p-2! h-10! w-10!"
+          className="shrink-0 rounded-full! p-2! h-12! w-12!"
           aria-label={content.sendButton.value}
         >
           {!sending && <HiOutlinePaperAirplane className="w-5 h-5" />}

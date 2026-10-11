@@ -140,7 +140,7 @@ export const MessageItem = memo(function MessageItem({
       {showActions && <div className="absolute top-0 end-0 z-10 rounded-lg border border-outline bg-neutral-100 p-2 shadow-lg" onKeyDown={event => { if (event.key === 'Escape') setShowActions(false); }}><button type="button" onClick={reply} className="px-3 py-2 text-neutral-900">{content.reply?.value || 'Reply'}</button><button type="button" className="px-2" aria-label={content.cancelReply?.value || 'Cancel reply'} onClick={() => setShowActions(false)}>×</button></div>}
       {/* Message Bubble */}
       <div
-        className={`flex flex-col max-w-[70%] ${
+        className={`flex flex-col min-w-0 max-w-[85%] sm:max-w-[75%] ${
           isOwn ? 'items-end' : 'items-start'
         }`}
       >
@@ -156,7 +156,7 @@ export const MessageItem = memo(function MessageItem({
           className={`
             rounded-2xl px-4 py-2 shadow-elevation-1
             ${isOwn
-              ? 'bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-ee-md'
+              ? 'bg-primary-600 text-white rounded-ee-md'
               : 'bg-neutral-100 border border-outline text-neutral-900 rounded-es-md'
             }
             ${status === 'failed' ? 'opacity-50' : ''}
@@ -178,7 +178,7 @@ export const MessageItem = memo(function MessageItem({
 
           {/* Text Content */}
           {messageContent && (
-            <p className="text-body-2 whitespace-pre-wrap wrap-break-word">
+            <p className="text-[15px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
               {messageContent}
             </p>
           )}
@@ -210,7 +210,7 @@ export const MessageItem = memo(function MessageItem({
       </div>
 
       {/* Spacer for alignment when no avatar */}
-      {isOwn && <div className="w-6 shrink-0" />}
+
     </div>
   );
 });

@@ -185,7 +185,7 @@ export function ConversationDetail() {
   }
 
   return (
-    <div className=" flex flex-col h-full min-h-0 min-w-0 bg-neutral-100">
+    <div className=" flex flex-col h-full min-h-0 min-w-0 bg-neutral-50">
       {/* Header */}
       <ConversationHeader
         conversation={conversation}
