@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useIntlayer } from 'react-intlayer';
 
 // Hooks
@@ -11,7 +11,7 @@ import ConversationsList from '@components/messaging/ConversationsList';
 import NewMessageModal from '@components/messaging/NewMessageModal';
 import NewGroupModal from '@components/messaging/NewGroupModal';
 import Button from '@components/common/Button';
-import { HiOutlinePencilSquare, HiOutlineUserGroup } from 'react-icons/hi2';
+import { HiOutlinePencilSquare, HiOutlineUserGroup, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 
 /**
  * @fileoverview Messages list page
@@ -20,8 +20,9 @@ import { HiOutlinePencilSquare, HiOutlineUserGroup } from 'react-icons/hi2';
 
 export function MessagesList() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const content = useIntlayer('messagesList');
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
@@ -45,7 +46,7 @@ export function MessagesList() {
     if (!searchQuery) return true;
 
     const query = searchQuery.toLowerCase();
-    
+
     // Search by conversation name
     if (conv.name && conv.name.toLowerCase().includes(query)) {
       return true;
@@ -69,11 +70,11 @@ export function MessagesList() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-neutral-100">
+    <div className="flex flex-col h-full min-h-0 bg-neutral-100">
       {/* Header */}
       <div className="shrink-0 bg-neutral-100 border-b border-outline">
-        <div className="flex items-center justify-between px-4 py-3">
-          <h1 className="text-heading-5 font-bold text-neutral-900">
+        <div className="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <h1 className="text-xl font-bold tracking-tight text-neutral-900 whitespace-nowrap">
             {content.recentChats?.value || content.pageTitle.value}
           </h1>
 
@@ -82,38 +83,40 @@ export function MessagesList() {
             <Button
               variant="text"
               onClick={() => setShowNewMessageModal(true)}
-              className="gap-2"
+              className="h-11! w-11! p-0! rounded-xl! shrink-0"
               aria-label={content.newMessage.value}
             >
               <HiOutlinePencilSquare className="w-5 h-5" />
-              <span className="hidden sm:inline">{content.newMessage.value}</span>
+
             </Button>
 
             {/* New Group Button */}
             <Button
               variant="primary"
               onClick={() => setShowNewGroupModal(true)}
-              className="gap-2 rounded-full h-9 px-3.5"
+              className="h-11! w-11! p-0! rounded-xl! shrink-0"
               aria-label={content.newGroup.value}
             >
               <HiOutlineUserGroup className="w-5 h-5" />
-              <span className="hidden sm:inline">{content.newGroup.value}</span>
+
             </Button>
           </div>
         </div>
 
         {/* Search Bar */}
-        <div className="px-4 pb-3">
+        <div className="relative mx-4 mb-4">
+          <HiOutlineMagnifyingGlass aria-hidden="true" className="pointer-events-none absolute start-3 top-3.5 h-5 w-5 text-neutral-500" />
           <input
-            type="text"
+            type="search"
+            aria-label={content.searchPlaceholder.value}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={content.searchPlaceholder.value}
             className="
-              w-full px-4 py-2
+              w-full ps-10 pe-4 py-3
               bg-surface
-              border border-transparent
-              rounded-full
+              border border-outline
+              rounded-xl
               text-body-2
               placeholder:text-neutral-500
               focus:outline-none focus:ring-2 focus:ring-primary-300 focus:bg-surface-lowest
@@ -124,8 +127,9 @@ export function MessagesList() {
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto no-scrollbar">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2">
         <ConversationsList
+          currentConversationId={pathname.split('/')[2]}
           items={filteredConversations}
           loading={isLoading}
           error={error}

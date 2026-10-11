@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@lib/api';
 import { useAuthStore } from '@store/auth';
@@ -9,11 +10,16 @@ import { useAuthStore } from '@store/auth';
  */
 export const useCreatePost = () => {
   const queryClient = useQueryClient();
+  const attempt = useRef(null);
   const currentUser = useAuthStore((state) => state.user);
 
   return useMutation({
     mutationFn: async (postData) => {
+      const fingerprint = JSON.stringify({ ...postData, images: postData.images?.map(f => [f.name, f.size, f.lastModified]) });
+      if (attempt.current?.fingerprint !== fingerprint) attempt.current = { fingerprint, id: crypto.randomUUID() };
+      const requestId = attempt.current.id;
       const formData = new FormData();
+      formData.append('clientRequestId', requestId);
 
       // Add text content
       if (postData.content) {
@@ -39,15 +45,28 @@ export const useCreatePost = () => {
         formData.append('community', postData.communityId);
       }
 
-      const response = await api.post('/posts', formData, {
+      let response;
+      try { response = await api.post('/posts', formData, {
+        timeout: 60000,
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
+      } catch (error) {
+        if (!error.response || error.response.status >= 500) {
+          try { response = await api.get('/posts/requests/' + requestId); }
+          catch { error.deliveryUncertain = true; throw error; }
+        } else throw error;
+      }
+      attempt.current = null;
       return response.data;
     },
     onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+      queryClient.invalidateQueries({ queryKey: ['userPosts'] });
+      queryClient.invalidateQueries({ queryKey: ['community'] });
+      queryClient.invalidateQueries({ queryKey: ['post'] });
       // Invalidate all feed queries to show new post
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       

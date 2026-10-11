@@ -36,7 +36,7 @@ export default function FeedFollowingController() {
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="w-full min-w-0">
         <FeedPostSkeleton />
         <FeedPostSkeleton />
         <FeedPostSkeleton />
@@ -46,7 +46,7 @@ export default function FeedFollowingController() {
 
   if (isError) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="w-full min-w-0">
         <ErrorDisplay 
           message={error?.response?.data?.error?.message || content.errorLoadingFeed}
           onRetry={refetch}
@@ -57,7 +57,7 @@ export default function FeedFollowingController() {
 
   if (posts.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="w-full min-w-0">
         <EmptyFeed 
           title={content.noFollowingPostsTitile}
           message={content.noFollowingPosts}
@@ -67,7 +67,7 @@ export default function FeedFollowingController() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-3">
+    <div className="w-full min-w-0 flex flex-col gap-3">
       {posts.map(post => (
         <PostCard
           key={post._id}

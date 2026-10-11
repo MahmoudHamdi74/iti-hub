@@ -36,7 +36,7 @@ export const useMessagingSocket = (conversationId) => {
         console.log('[useMessagingSocket] New message received:', data);
       }
 
-      const { conversationId: msgConvId, content, senderId, senderName, senderProfilePicture, image, messageId, timestamp } = data;
+      const { conversationId: msgConvId, content, senderId, senderName, senderProfilePicture, image, replyTo, messageId, timestamp } = data;
 
       // If listening to specific conversation, filter
       if (conversationId && conversationId !== msgConvId) {
@@ -73,6 +73,7 @@ export const useMessagingSocket = (conversationId) => {
           _id: messageId,
           content,
           image,
+          replyTo,
           sender: {
             _id: senderId,
             username: senderName,

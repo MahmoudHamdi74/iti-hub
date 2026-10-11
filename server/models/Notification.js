@@ -107,7 +107,7 @@ NotificationSchema.statics.createOrUpdateNotification = async function(recipient
   // - For COMMENT_LIKE: group by COMMENT
   let groupingKey = targetId; // Default to targetId
   
-  if (type === NOTIFICATION_TYPES.COMMENT || type === NOTIFICATION_TYPES.REPLY) {
+  if (type === NOTIFICATION_TYPES.COMMENT || type === NOTIFICATION_TYPES.REPLY || type === NOTIFICATION_TYPES.REPOST) {
     // Group comments/replies by POST, not by individual comment
     groupingKey = postId || targetId; // Use postId if provided, fallback to targetId
   }
@@ -202,7 +202,19 @@ NotificationSchema.statics.createOrUpdateNotification = async function(recipient
   return notification;
 };
 
+// Clean up historical alerts whose posts/comments were deleted before cascade cleanup.
+NotificationSchema.statics.pruneMissingTargets = async function(userId) {
+  for (const modelName of ['Post', 'Comment']) {
+    const rows = await this.find({ recipient: userId, targetModel: modelName }).select('_id target').lean();
+    if (!rows.length) continue;
+    const existing = new Set((await mongoose.model(modelName).distinct('_id', { _id: { $in: rows.map(row => row.target) } })).map(String));
+    const missing = rows.filter(row => !existing.has(String(row.target))).map(row => row._id);
+    if (missing.length) await this.deleteMany({ _id: { $in: missing }, recipient: userId });
+  }
+};
+
 NotificationSchema.statics.getUnreadCount = async function(userId) {
+  await this.pruneMissingTargets(userId);
   return this.countDocuments({
     recipient: userId,
     isRead: false

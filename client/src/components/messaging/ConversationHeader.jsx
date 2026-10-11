@@ -50,12 +50,12 @@ export function ConversationHeader({
   }
 
   return (
-    <div className="sticky top-0 z-3 bg-neutral-100 border-b border-outline">
-      <div className="flex items-center gap-3 px-4 py-3">
+    <div className="shrink-0 z-3 bg-neutral-100 border-b border-outline">
+      <div className="flex items-center gap-3 px-4 py-4 lg:px-6">
         {/* Back Button */}
         <button
           onClick={() => navigate('/messages')}
-          className="p-2 -ms-2 text-neutral-600 hover:text-neutral-900 hover:bg-surface-high rounded-lg transition-colors"
+          className="lg:hidden p-2 -ms-2 text-neutral-600 hover:text-neutral-900 hover:bg-surface-high rounded-lg transition-colors"
           aria-label={content.backToMessages.value}
         >
           <HiOutlineArrowLeft className="w-6 h-6 rtl:[transform:scaleX(-1)]" />

@@ -1,9 +1,8 @@
-import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import { useRef, useEffect, useLayoutEffect, useMemo, useCallback } from 'react';
 import { useIntlayer } from 'react-intlayer';
 import MessageItem from './MessageItem';
 import Loading from '@/components/common/Loading';
 import Button from '@/components/common/Button';
-import { useIntersectionObserver } from '@hooks/useIntersectionObserver';
 import { useUIStore } from '@store/uiStore';
 import dayjs from 'dayjs';
 import calendar from 'dayjs/plugin/calendar';
@@ -46,56 +45,58 @@ export function MessageList({
   onLoadOlder,
   onRetryMessage,
   onImageClick,
+  onReply,
 }) {
   const content = useIntlayer('conversationDetail');
   const { locale } = useUIStore();
   const isGroup = conversation?.isGroup;
   const scrollContainerRef = useRef(null);
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-  const previousItemsLengthRef = useRef(items.length);
-
-  // Set dayjs locale
+  const pinned = useRef(true);
+  const previous = useRef(null);
+  const anchor = useRef(null);
+  const fetchingOlder = useRef(false);
   dayjs.locale(locale);
 
-  // Setup intersection observer for infinite scroll (load older messages)
-  const { observerTarget } = useIntersectionObserver({
-    onIntersect: () => {
-      if (onLoadOlder && typeof onLoadOlder === 'function') {
-        console.log('[MessageList] Loading older messages...');
-        onLoadOlder();
-      }
-    },
-    enabled: hasOlderMessages && !loadingOlder && !!onLoadOlder,
-    threshold: 0.1
-  });
+  const loadOlder = useCallback(async () => {
+    const element = scrollContainerRef.current;
+    if (!element || !hasOlderMessages || loadingOlder || fetchingOlder.current) return;
+    anchor.current = { height: element.scrollHeight, top: element.scrollTop };
+    fetchingOlder.current = true;
+    try { await onLoadOlder?.(); } finally { fetchingOlder.current = false; }
+  }, [hasOlderMessages, loadingOlder, onLoadOlder]);
 
-  // Auto-scroll to bottom on new messages
-  useEffect(() => {
-    if (!scrollContainerRef.current) return;
-
-    const container = scrollContainerRef.current;
-    const isNewMessage = items.length > previousItemsLengthRef.current;
-    const isAtBottom = 
-      container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-
-    // Auto-scroll if user is near bottom or if it's a new message
-    if (shouldAutoScroll && (isAtBottom || isNewMessage)) {
-      container.scrollTop = container.scrollHeight;
+  useLayoutEffect(() => {
+    const element = scrollContainerRef.current;
+    if (!element || !items.length) return;
+    const first = items[0]._id, last = items.at(-1)._id;
+    if (!previous.current) {
+      element.scrollTop = element.scrollHeight;
+      pinned.current = true;
+    } else if (first !== previous.current.first && anchor.current) {
+      element.scrollTop = anchor.current.top + element.scrollHeight - anchor.current.height;
+      anchor.current = null;
+    } else if (last !== previous.current.last && (pinned.current || (items.at(-1).sender?._id || items.at(-1).sender) === currentUserId)) {
+      element.scrollTop = element.scrollHeight;
+      pinned.current = true;
     }
+    previous.current = { first, last };
+  }, [items, currentUserId]);
 
-    previousItemsLengthRef.current = items.length;
-  }, [items, shouldAutoScroll]);
+  useEffect(() => {
+    const element = scrollContainerRef.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => { if (pinned.current) element.scrollTop = element.scrollHeight; });
+    observer.observe(element);
+    if (element.firstElementChild) observer.observe(element.firstElementChild);
+    return () => observer.disconnect();
+  }, [items.length]);
 
-  // Track if user manually scrolled up
   const handleScroll = useCallback(() => {
-    if (!scrollContainerRef.current) return;
-
-    const container = scrollContainerRef.current;
-    const isAtBottom = 
-      container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-
-    setShouldAutoScroll(isAtBottom);
-  }, []);
+    const element = scrollContainerRef.current;
+    if (!element) return;
+    pinned.current = element.scrollHeight - element.scrollTop - element.clientHeight < 60;
+    if (element.scrollTop < 60 && !pinned.current) loadOlder();
+  }, [loadOlder]);
 
   // Group messages by date - MEMOIZED for performance
   const messageGroups = useMemo(() => {
@@ -182,17 +183,19 @@ export function MessageList({
     <div
       ref={scrollContainerRef}
       onScroll={handleScroll}
-      className="flex-1 overflow-y-auto no-scrollbar px-4 py-4 space-y-4"
+      data-testid="message-scroll"
+      onLoadCapture={() => { if (pinned.current && scrollContainerRef.current) scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight; }}
+      className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-5 sm:px-6 lg:px-8 space-y-4"
     >
       {/* Load Older Messages Button - Intersection Observer Target */}
       {hasOlderMessages && (
-        <div ref={observerTarget} className="flex justify-center mb-4">
+        <div className="flex justify-center mb-4">
           {loadingOlder ? (
             <Loading text={content.loadingOlderMessages.value} size="sm" />
           ) : (
             <Button
               variant="text"
-              onClick={onLoadOlder}
+              onClick={loadOlder}
               className="text-secondary-600"
             >
               {content.loadingOlderMessages.value}
@@ -203,7 +206,7 @@ export function MessageList({
 
       {/* Messages Grouped by Date */}
       {messageGroups.map((group) => (
-        <div key={group.date} className="space-y-2">
+        <div key={group.date} className="space-y-2 mx-auto w-full max-w-3xl">
           {/* Date Separator */}
           <div className="flex items-center justify-center my-4">
             <div className="bg-neutral-100 px-3 py-1 rounded-full">
@@ -223,6 +226,7 @@ export function MessageList({
               participants={participants}
               onRetry={onRetryMessage}
               onImageClick={onImageClick}
+              onReply={onReply}
             />
           ))}
         </div>

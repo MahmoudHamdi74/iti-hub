@@ -25,6 +25,9 @@ postRoutes.post("/", checkAuth, upload.post, createPost);
 // Get saved posts (must be before /:id to avoid conflicts)
 postRoutes.get("/saved", checkAuth, getSavedPosts);
 
+// Resolve ambiguous network outcomes without creating another post.
+postRoutes.get('/requests/:requestId', checkAuth, require('../controllers/post/getPostRequestController'));
+
 // Get, update, delete post
 postRoutes.get("/:id", optionalAuth, getPost);
 postRoutes.patch("/:id", checkAuth, updatePost);

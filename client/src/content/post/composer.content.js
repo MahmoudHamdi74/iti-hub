@@ -3,6 +3,7 @@ import { t } from "intlayer";
 export default {
   key: "postComposer",
   content: {
+    deliveryUncertain: t({ en: 'Connection interrupted. We could not confirm publishing. Your draft is kept; retry the same post safely when connected.', ar: 'الاتصال انقطع ولم نتمكن من تأكيد النشر. مسودتك محفوظة؛ يمكنك إعادة المحاولة بنفس المحتوى بعد عودة الاتصال.' }),
     // Modal title
     createPost: t({ en: "Create Post", ar: "إنشاء منشور" }),
     editPost: t({ en: "Edit Post", ar: "تعديل منشور" }),

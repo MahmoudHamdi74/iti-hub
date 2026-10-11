@@ -39,7 +39,7 @@ export default function FeedTrendingController() {
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="w-full min-w-0">
         <FeedPostSkeleton />
         <FeedPostSkeleton />
         <FeedPostSkeleton />
@@ -49,7 +49,7 @@ export default function FeedTrendingController() {
 
   if (isError) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="w-full min-w-0">
         <ErrorDisplay 
           message={error?.response?.data?.error?.message || content.errorLoadingFeed}
           onRetry={refetch}
@@ -59,7 +59,7 @@ export default function FeedTrendingController() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-3">
+    <div className="w-full min-w-0 flex flex-col gap-3">
       
       {posts.length === 0 ? (
         <EmptyFeed 

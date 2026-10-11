@@ -1,12 +1,15 @@
+const { syncPostCounts } = require('../../utils/postLifecycle');
+const { canPostToCommunity } = require('../../utils/communityHelpers');
+const { getPostVisibility } = require('../../utils/postVisibility');
 const Post = require('../../models/Post');
 const Community = require('../../models/Community');
 const Notification = require('../../models/Notification');
 const { NOTIFICATION_TYPES } = require('../../utils/constants');
 const { validateRepostComment, buildPostResponse } = require('../../utils/postHelpers');
 const { asyncHandler } = require('../../middlewares/errorHandler');
-const { ValidationError, NotFoundError } = require('../../utils/errors');
+const { ValidationError, NotFoundError, ForbiddenError } = require('../../utils/errors');
 const { sendCreated } = require('../../utils/responseHelpers');
-const {invalidateUserFeeds} = require("../../utils/feedCache")
+const {clearAll} = require("../../utils/feedCache")
 
 /**
  * Repost a post
@@ -18,22 +21,21 @@ const repost = asyncHandler(async (req, res) => {
   const { comment, communityId } = req.body || {};
   const userId = req.user._id;
 
-  console.log(req.body)
 
   // Find original post
- let originalPost = await Post.findById(id);
+  const visibility = await getPostVisibility(userId);
+  let originalPost = await Post.findOne({ $and: [{ _id: id }, visibility.filter] });
   if (!originalPost) {
     throw new NotFoundError('Original post not found');
   }
 
   // If the original post is itself a repost, get the root original post
   if (originalPost.originalPost) {
-    originalPost = await Post.findById(originalPost.originalPost);
+    originalPost = await Post.findById(originalPost.originalPost._id || originalPost.originalPost);
     if (!originalPost) {
       throw new NotFoundError('Original post not found');
     }
   }
-
 
   if (communityId) {
     const community = await Community.findById(communityId);
@@ -41,6 +43,8 @@ const repost = asyncHandler(async (req, res) => {
       throw new NotFoundError('Community not found');
     }
   }
+
+  if (communityId && !(await canPostToCommunity(userId, communityId))) throw new ForbiddenError('You must be a member of this community to post');
 
   // Validate repost comment
   if (comment) {
@@ -60,14 +64,14 @@ const repost = asyncHandler(async (req, res) => {
   });
 
   // Increment repost count on original post
-  originalPost.repostsCount += 1;
-  await originalPost.save();
+  await Post.updateOne({ _id: originalPost._id }, { $inc: { repostsCount: 1 } });
+  await syncPostCounts([repostDoc]);
 
   // Create notification (don't block on failure)
   // Group reposts by the original post (not by individual repost)
   try {
     await Notification.createOrUpdateNotification(
-      originalPost.author,
+      originalPost.author._id || originalPost.author,
       userId,
       NOTIFICATION_TYPES.REPOST,
       repostDoc._id,    // target: navigate to the repost with comment
@@ -80,10 +84,10 @@ const repost = asyncHandler(async (req, res) => {
 
   // Populate author details
   await repostDoc.populate('author', 'username fullName profilePicture');
-  await repostDoc.populate('originalPost');
-  await invalidateUserFeeds(userId);
+  await repostDoc.populate({ path: 'originalPost', populate: [{ path: 'author', select: 'username fullName profilePicture' }, { path: 'community', select: 'name profilePicture' }] });
+  clearAll();
 
-  sendCreated(res, { post: buildPostResponse(repostDoc, req.user._id) }, 'Post reposted successfully');
+  sendCreated(res, { post: await buildPostResponse(repostDoc, req.user._id) }, 'Post reposted successfully');
 });
 
 module.exports = repost;

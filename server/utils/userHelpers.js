@@ -164,6 +164,8 @@ function validateProfileUpdate(updateData) {
  */
 async function buildProfileResponse(user, requesterId = null) {
   const profile = sanitizeUserProfile(user);
+  // Existing accounts may have a stale/negative stored counter. Count actual posts.
+  profile.postsCount = await require('../models/Post').countDocuments({ author: user._id });
   
   // If requester is viewing their own profile, include email
   if (requesterId && user._id.toString() === requesterId.toString()) {

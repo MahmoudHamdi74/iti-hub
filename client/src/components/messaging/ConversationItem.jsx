@@ -4,7 +4,7 @@ import { useIntlayer, useLocale } from 'react-intlayer';
 import { useAuthStore } from '@store/auth';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { Chip } from '@components/common';
+
 
 dayjs.extend(relativeTime);
 
@@ -88,7 +88,7 @@ export const ConversationItem = memo(function ConversationItem({ conversation, o
     if (diffInMinutes < 60) return content.timeLabels.minutes[locale]({ count: diffInMinutes });
     if (diffInHours < 24) return content.timeLabels.hours[locale]({ count: diffInHours });
     if (diffInDays < 7) return content.timeLabels.days[locale]({ count: diffInDays });
-    
+
     return time.format('MMM D');
   };
 
@@ -100,16 +100,17 @@ export const ConversationItem = memo(function ConversationItem({ conversation, o
     <div
       onClick={() => onOpen(_id)}
       className={`
-        flex items-start gap-3
-        p-4
+        flex items-center gap-3
+        p-3 my-1 rounded-2xl
         cursor-pointer
         transition-colors duration-200
-        border-b border-b-outline border-s-4
+        border border-transparent
         hover:bg-surface-high
-        ${isActive ? 'bg-surface-high border-s-secondary-500' : 'border-s-transparent'}
-        ${hasUnread && !isActive ? 'bg-secondary-500/10' : ''}
+        ${isActive ? 'bg-surface-high border-outline' : ''}
+        ${hasUnread && !isActive ? 'bg-primary-500/5' : ''}
       `}
       role="button"
+      aria-current={isActive ? 'page' : undefined}
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -126,12 +127,7 @@ export const ConversationItem = memo(function ConversationItem({ conversation, o
           size="md"
           className="ring-2 ring-surface-lowest"
         />
-        {/* Unread Badge Overlay */}
-        {hasUnread && (
-          <div className="absolute -top-1 -end-1 w-5 h-5 bg-secondary-500 text-white text-xs font-semibold rounded-full flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </div>
-        )}
+
       </div>
 
       {/* Content Section */}
@@ -140,24 +136,17 @@ export const ConversationItem = memo(function ConversationItem({ conversation, o
           {/* Name */}
           <h3
             className={`
-              text-body-1 truncate
+              text-[15px] min-w-0 flex-1 truncate
               ${hasUnread ? 'font-semibold text-neutral-900' : 'font-medium text-neutral-800'}
             `}
           >
             {displayName}
           </h3>
-            {isGroup && participants && (
-              <span className="text-xs text-start text-neutral-500 font-normal">
-                {participants.length === 1
-                  ? content.member.value
-                  : content.groupMembers[locale]({ count: participants.length })}
-              </span>
-            )}
 
           {/* Timestamp */}
           <span
             className={`
-              text-caption ms-auto
+              text-[11px] shrink-0 ms-auto whitespace-nowrap
               ${hasUnread ? 'text-secondary-700 dark:text-secondary-400 font-medium' : 'text-neutral-500'}
             `}
           >
@@ -178,14 +167,7 @@ export const ConversationItem = memo(function ConversationItem({ conversation, o
 
           {/* Unread Count Badge */}
           {hasUnread && (
-            <Chip
-              size="xs"
-              dot={false}
-              tone="border-transparent bg-secondary-500 text-white"
-              className="shrink-0"
-            >
-              {content.newBadge}
-            </Chip>
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-600 px-1.5 text-[11px] font-bold text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>
           )}
         </div>
       </div>

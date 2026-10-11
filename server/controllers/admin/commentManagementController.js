@@ -1,9 +1,9 @@
+const { deleteCommentData } = require('../../utils/postLifecycle');
 /**
  * Admin Comment Management Controller
  * Provides comment listing and deletion for content moderation
  */
 const Comment = require('../../models/Comment');
-const Post = require('../../models/Post');
 const User = require('../../models/User');
 const { sendSuccess } = require('../../utils/responseHelpers');
 
@@ -116,20 +116,11 @@ const deleteComment = async (req, res, next) => {
       });
     }
 
-    // Update post's comment count
-    await Post.findByIdAndUpdate(comment.post, {
-      $inc: { commentsCount: -1 }
-    });
-
-    // If this is a parent comment, delete all replies
-    const deletedReplies = await Comment.deleteMany({ parentComment: commentId });
-
-    // Delete comment
-    await comment.deleteOne();
+    const deletedCount = await deleteCommentData(comment);
 
     return sendSuccess(res, {
       deletedComment: commentId,
-      deletedReplies: deletedReplies.deletedCount
+      deletedReplies: Math.max(0, deletedCount - 1)
     }, 'Comment deleted successfully');
   } catch (error) {
     next(error);

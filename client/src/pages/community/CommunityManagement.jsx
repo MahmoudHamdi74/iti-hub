@@ -1,3 +1,5 @@
+import ErrorDisplay from '@components/common/ErrorDisplay';
+import NotFoundPage from '@pages/notfound/NotFoundPage';
 import { useState } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { FaShieldAlt, FaUsers, FaCrown, FaUserPlus, FaUserMinus, FaArrowLeft } from 'react-icons/fa';
@@ -28,7 +30,7 @@ const CommunityManagement = () => {
   const [memberToKick, setMemberToKick] = useState(null);
 
   // Fetch community details to check role
-  const { data: community, isLoading: loadingCommunity } = useCommunityDetails(communityId);
+  const { data: community, isLoading: loadingCommunity, error: communityError, refetch: retryCommunity } = useCommunityDetails(communityId);
 
   // Fetch members with infinite scroll
   const {
@@ -141,6 +143,9 @@ const CommunityManagement = () => {
       </div>
     );
   }
+
+  if (communityError?.response?.status === 404) return <NotFoundPage />;
+  if (communityError) return <ErrorDisplay error={communityError} onRetry={retryCommunity} />;
 
   // Access denied - redirect to community page
   if (!isModerator) {

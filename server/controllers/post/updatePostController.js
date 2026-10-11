@@ -54,7 +54,7 @@ const updatePost = asyncHandler(async (req, res) => {
   // Invalidate user feed cache
   await invalidateUserFeeds(req.user._id);
 
-  sendSuccess(res, { post: buildPostResponse(post, req.user._id) }, 'Post updated successfully');
+  sendSuccess(res, { post: await buildPostResponse(post, req.user._id) }, 'Post updated successfully');
 });
 
 module.exports = updatePost;

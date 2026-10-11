@@ -17,7 +17,7 @@ const { sendCreated } = require('../../utils/responseHelpers');
 exports.sendMessage = asyncHandler(async (req, res) => {
   const currentUserId = req.user._id;
   const { conversationId } = req.params;
-  let { content } = req.body;
+  let { content, replyTo } = req.body;
   const imageFile = req.file;
 
   // Validate conversationId
@@ -67,6 +67,11 @@ exports.sendMessage = asyncHandler(async (req, res) => {
   }
   // Note: Group conversations allow messaging even if participants have blocked each other
 
+  if (replyTo) {
+    if (!mongoose.Types.ObjectId.isValid(replyTo)) throw new ValidationError('Invalid reply message');
+    if (!(await Message.exists({ _id: replyTo, conversation: conversationId }))) throw new NotFoundError('Reply message not found in this conversation');
+  }
+
   // Upload image if provided
   let imageUrl = null;
   if (imageFile) {
@@ -88,7 +93,8 @@ exports.sendMessage = asyncHandler(async (req, res) => {
   const messageData = {
     conversation: conversationId,
     sender: currentUserId,
-    status: 'sent'
+    status: 'sent',
+    replyTo: replyTo || null
   };
 
   if (content && content.length > 0) {
@@ -118,6 +124,8 @@ exports.sendMessage = asyncHandler(async (req, res) => {
   // Populate sender details for response
   await message.populate('sender', 'username fullName profilePicture isOnline lastSeen');
 
+  await message.populate({ path: 'replyTo', select: 'content image sender', populate: { path: 'sender', select: 'username fullName' } });
+
   const formatted = formatMessage(message.toObject());
 
   // Emit real-time message to other participants
@@ -133,6 +141,7 @@ exports.sendMessage = asyncHandler(async (req, res) => {
               conversationId: conversationId,
               content: formatted.content,
               image: formatted.image,
+              replyTo: formatted.replyTo,
               senderId: currentUserId.toString(),
                senderProfilePicture: req.user.profilePicture,
               senderName: req.user.fullName || req.user.username,

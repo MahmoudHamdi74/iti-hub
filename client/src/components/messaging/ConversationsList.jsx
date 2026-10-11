@@ -92,7 +92,7 @@ export function ConversationsList({
   return (
     <div className="flex flex-col">
       {/* Conversations */}
-      <div className="divide-y divide-outline">
+      <div className="space-y-1">
         {items.map((conversation) => (
           <ConversationItem
             key={conversation._id}

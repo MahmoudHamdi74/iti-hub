@@ -13,7 +13,7 @@ const { sendSuccess } = require('../../utils/responseHelpers');
 exports.getMessages = asyncHandler(async (req, res) => {
   const currentUserId = req.user._id;
   const { conversationId } = req.params;
-  const { cursor, limit = 50 } = req.query;
+  const { cursor, limit = 20 } = req.query;
 
   // Validate conversationId
   if (!mongoose.Types.ObjectId.isValid(conversationId)) {
@@ -35,10 +35,10 @@ exports.getMessages = asyncHandler(async (req, res) => {
   // Parse and validate limit (default 50, max 100)
   let parsedLimit = parseInt(limit, 10);
   if (isNaN(parsedLimit) || parsedLimit < 1) {
-    parsedLimit = 50;
+    parsedLimit = 20;
   }
-  if (parsedLimit > 100) {
-    parsedLimit = 100;
+  if (parsedLimit > 20) {
+    parsedLimit = 20;
   }
 
   // Build query
@@ -51,7 +51,9 @@ exports.getMessages = asyncHandler(async (req, res) => {
       throw new ValidationError('Invalid cursor format');
     }
     // Get messages older than cursor (for reverse chronological order)
-    query._id = { $lt: cursor };
+    const anchor = await Message.findOne({ _id: cursor, conversation: conversationId }).select('createdAt');
+    if (!anchor) throw new ValidationError('Invalid conversation cursor');
+    query.$or = [{ createdAt: { $lt: anchor.createdAt } }, { createdAt: anchor.createdAt, _id: { $lt: anchor._id } }];
   }
 
   // Get total count
@@ -59,9 +61,10 @@ exports.getMessages = asyncHandler(async (req, res) => {
 
   // Fetch messages
   const messages = await Message.find(query)
-    .sort({ createdAt: -1 }) // Most recent first
+    .sort({ createdAt: -1, _id: -1 }) // Most recent first
     .limit(parsedLimit + 1) // Fetch one extra to check if there are more
     .populate('sender', 'username fullName profilePicture isOnline lastSeen')
+    .populate({ path: 'replyTo', select: 'content image sender', populate: { path: 'sender', select: 'username fullName' } })
     .lean();
 
   // Check if there are more messages

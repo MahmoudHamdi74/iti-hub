@@ -34,18 +34,12 @@ export function RepostMenu({
 
   return (
     <Menu as="div" className={`relative ${className}`}>
-      <MenuButton as="div">
-        <InteractionButton
-          icon={<HiArrowPathRoundedSquare className="w-5 h-5" />}
-          count={repostCount}
-          isActive={isReposted}
-          onClick={(e) => {
-            // Prevent default to let Menu handle the click
-            e.preventDefault();
-          }}
-          label={content.repost}
-          activeColor="text-green-500"
-        />
+      <MenuButton
+        aria-label={content.repost}
+        className={`flex items-center gap-2 hover:bg-neutral-50 px-3 py-2 rounded-full transition-colors cursor-pointer ${isReposted ? 'text-green-500' : 'text-neutral-600'}`}
+      >
+        <HiArrowPathRoundedSquare className="w-5 h-5" />
+        {repostCount > 0 && <span className="text-sm font-medium">{repostCount > 999 ? `${(repostCount / 1000).toFixed(1)}k` : repostCount}</span>}
       </MenuButton>
 
       <MenuItems 

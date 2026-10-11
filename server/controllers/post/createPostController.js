@@ -1,3 +1,4 @@
+const { syncPostCounts } = require('../../utils/postLifecycle');
 const Post = require('../../models/Post');
 const Community = require('../../models/Community');
 const {
@@ -5,7 +6,7 @@ const {
   validatePostTags,
   buildPostResponse
 } = require('../../utils/postHelpers');
-const { canPostToCommunity, updatePostCount } = require('../../utils/communityHelpers');
+const { canPostToCommunity } = require('../../utils/communityHelpers');
 const { processImage } = require('../../utils/imageProcessor');
 const { uploadToCloudinary } = require('../../utils/cloudinary');
 const { CLOUDINARY_FOLDER_POST, IMAGE_CONFIGS} = require('../../utils/constants');
@@ -13,7 +14,7 @@ const mongoose = require('mongoose');
 const { asyncHandler } = require('../../middlewares/errorHandler');
 const { ValidationError, NotFoundError, ForbiddenError, InternalError } = require('../../utils/errors');
 const { sendCreated } = require('../../utils/responseHelpers');
-const {invalidateUserFeeds} = require('../../utils/feedCache');
+const {clearAll} = require('../../utils/feedCache');
 
 /**
  * Create a new post
@@ -31,6 +32,12 @@ const createPost = asyncHandler(async (req, res) => {
   console.log("Creating post with tags:", tags);
   const userId = req.user._id;
   let imageUrls = [];
+  const clientRequestId = req.body.clientRequestId;
+  if (clientRequestId && (typeof clientRequestId !== 'string' || !/^[a-zA-Z0-9-]{8,100}$/.test(clientRequestId))) throw new ValidationError('Invalid request identifier');
+  if (clientRequestId) {
+    const existing = await Post.findOne({ author: userId, clientRequestId });
+    if (existing) return sendCreated(res, { post: await buildPostResponse(existing, userId) }, 'Post created successfully');
+  }
 
 
   // Validate community if provided
@@ -88,26 +95,29 @@ const createPost = asyncHandler(async (req, res) => {
   }
 
   // Create post
-  const post = await Post.create({
+  let post;
+  try { post = await Post.create({
+    ...(clientRequestId ? { clientRequestId } : {}),
     author: userId,
     content: content || '',
     images: imageUrls,
     tags: tags || [],
     community: community || null
   });
-
-  // Increment community post count if posting to a community
-  if (community) {
-    await updatePostCount(community, 1);
+  } catch (err) {
+    if (err.code !== 11000 || !clientRequestId) throw err;
+    post = await Post.findOne({ author: userId, clientRequestId });
+    if (!post) throw err;
   }
 
+  try { await syncPostCounts([post]); } catch (error) { console.error('Post counter reconciliation failed:', error.code); }
 
   // Populate author details
   await post.populate('author', 'username fullName profilePicture');
   //invalidate user feed cache
-  await invalidateUserFeeds(req.user._id);
+  clearAll();
 
-  sendCreated(res, { post: buildPostResponse(post, req.user) }, 'Post created successfully');
+  sendCreated(res, { post: await buildPostResponse(post, req.user._id) }, 'Post created successfully');
 });
 
 module.exports = createPost;

@@ -23,6 +23,7 @@ test('messages and notifications reach both devices; unread totals and seen even
   const app = express();
   app.use(express.json());
   app.use('/conversations', require('../routes/conversationRoutes'));
+  app.use('/posts', require('../routes/postRoutes'));
   app.use('/notifications', require('../routes/notificationRoutes'));
   app.use(require('../middlewares/errorHandler').errorHandler);
   const server = http.createServer(app);
@@ -79,4 +80,14 @@ test('messages and notifications reach both devices; unread totals and seen even
   const cleared = clients.map(socket => event(socket, 'notification:count'));
   await request(app).put(`/notifications/${notification.id}/read`).set('Authorization', receiverAuth).expect(200);
   for (const count of await Promise.all(cleared)) assert.equal(count.unreadCount, 0);
+  const post = await require('../models/Post').create({ author: receiver._id, content: 'Delete notification test' });
+  const newCounts = clients.map(socket => event(socket, 'notification:count'));
+  await Notification.createOrUpdateNotification(receiver._id, sender._id, 'like', post._id, post._id);
+  for (const count of await Promise.all(newCounts)) assert.equal(count.unreadCount, 1);
+  const removals = clients.map(socket => event(socket, 'notification:removed'));
+  const deletionCounts = clients.map(socket => event(socket, 'notification:count'));
+  await request(app).delete('/posts/'+post.id).set('Authorization', receiverAuth).expect(204);
+  await Promise.all(removals);
+  for (const count of await Promise.all(deletionCounts)) assert.equal(count.unreadCount, 0);
+
 });

@@ -1,140 +1,39 @@
-import { useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { Dialog, DialogPanel, DialogTitle } from '@headlessui/react';
+import { useIntlayer } from 'react-intlayer';
+import toast from 'react-hot-toast';
 import CommunityHeader from './CommunityHeader';
 import CommunityInfo from './CommunityInfo';
 import CommunityFeed from './CommunityFeed';
+import CommunitySettings from './CommunitySettings';
 import { useCommunityDetails } from '@hooks/queries/useCommunity';
-import {
-  useJoinCommunity,
-  useLeaveCommunity,
-  useUpdateCommunity,
-  useUpdateCommunityProfilePicture,
-  useUpdateCommunityCoverImage,
-} from '@hooks/mutations/useCommunityMutations';
-import { useIntlayer } from 'react-intlayer';
-import toast from 'react-hot-toast';
-
-/**
- * Community Component - Main container for community page
- * Displays community header, info sidebar, and feed
- * Integrates all community API endpoints
- *
- * Round 3 work order §4: joining goes through the pending-request flow —
- * the Join button sends a request that a moderator must approve.
- */
-const Community = () => {
+import { useJoinCommunity, useLeaveCommunity, useUpdateCommunity, useUpdateCommunityProfilePicture, useUpdateCommunityCoverImage } from '@hooks/mutations/useCommunityMutations';
+import NotFoundPage from '@pages/notfound/NotFoundPage';
+import ErrorDisplay from '@components/common/ErrorDisplay';
+import Loading from '@components/common/Loading';
+export default function Community() {
   const { communityId } = useParams();
-  const  content  = useIntlayer('community');
-
-  // Fetch community details using custom hook
-  const { data: community, isLoading, error } = useCommunityDetails(communityId);
-
-  // Mutations hooks
-  const joinMutation = useJoinCommunity(communityId);
-  const leaveMutation = useLeaveCommunity(communityId);
-  const updateMutation = useUpdateCommunity(communityId);
-  const updateProfilePictureMutation = useUpdateCommunityProfilePicture(communityId);
-  const updateCoverImageMutation = useUpdateCommunityCoverImage(communityId);
-
-  // Handle join/leave community (pending-request flow for joins)
-  const handleJoinLeave = async () => {
-    if (community?.isJoined) {
-      await leaveMutation.mutateAsync();
-    } else {
-      try {
-        await joinMutation.mutateAsync();
-        toast.success(content.joinRequestSent?.value || 'Join request sent!');
-      } catch (err) {
-        const message =
-          err?.response?.data?.error?.message ||
-          content.joinRequestFailed?.value ||
-          'Failed to send join request';
-        toast.error(message);
-      }
-    }
-  };
-
-  // Handle update community details
-  const handleUpdateCommunity = async (updates) => {
-    await updateMutation.mutateAsync(updates);
-  };
-
-  // Handle profile picture update
-  const handleProfilePictureUpdate = async (file) => {
-    await updateProfilePictureMutation.mutateAsync(file);
-  };
-
-  // Handle cover image update
-  const handleCoverImageUpdate = async (file) => {
-    await updateCoverImageMutation.mutateAsync(file);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-neutral-50">
-        <div className="text-center">
-          <div className="inline-block w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-body-1 text-neutral-600">{content.loading}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-neutral-50">
-        <div className="text-center p-8 bg-neutral-100 rounded-lg shadow-elevation-2">
-          <div className="text-error text-4xl mb-4">⚠️</div>
-          <h2 className="text-heading-4 text-neutral-900 mb-2">{content.errorOccurred}</h2>
-          <p className="text-body-2 text-neutral-600">{error.message}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!community) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-neutral-50">
-        <div className="text-center">
-          <p className="text-body-1 text-neutral-600">{content.communityNotFound}</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-neutral-50">
-      {/* Community Header - Part 1 */}
-      <CommunityHeader
-        community={community}
-        isJoined={community?.isJoined || false}
-        isPending={community?.isPending || false}
-        isJoining={joinMutation.isPending}
-        onJoinLeave={handleJoinLeave}
-        onProfilePictureUpdate={handleProfilePictureUpdate}
-        onCoverImageUpdate={handleCoverImageUpdate}
-      />
-
-      {/* Main Content - Parts 2 & 3 */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Community Info Sidebar - Part 2 (Sticky) */}
-          <div className="lg:col-span-1">
-            <div className="lg:sticky lg:top-6 space-y-4">
-              <CommunityInfo
-                community={community}
-                onUpdateCommunity={handleUpdateCommunity}
-              />
-            </div>
-          </div>
-
-          {/* Community Feed - Part 3 */}
-          <div className="lg:col-span-2">
-            <CommunityFeed communityId={communityId} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Community;
+  const text = useIntlayer('community');
+  const [sidebar, setSidebar] = useState(false);
+  const [settings, setSettings] = useState(false);
+  const { data: community, isLoading, error, refetch } = useCommunityDetails(communityId);
+  const join = useJoinCommunity(communityId), leave = useLeaveCommunity(communityId), update = useUpdateCommunity(communityId);
+  const picture = useUpdateCommunityProfilePicture(communityId), cover = useUpdateCommunityCoverImage(communityId);
+  const run = async action => { try { await action(); } catch (err) { toast.error(err?.response?.data?.error?.message || text.errorOccurred?.value); } };
+  if (error?.response?.status === 404 || error?.response?.status === 400) return <NotFoundPage />;
+  if (error) return <div className="p-5"><ErrorDisplay error={error} onRetry={refetch} /><Link to="/communities" className="mt-4 inline-block text-primary-600">{text.backToCommunities}</Link></div>;
+  if (isLoading) return <div className="p-8"><Loading /></div>;
+  if (!community) return <NotFoundPage />;
+  const moderator = ['owner', 'moderator'].includes(community.role);
+  const controls = <div className="mb-4 flex flex-wrap gap-2">{moderator && <Link onClick={() => setSidebar(false)} to={`/community/${communityId}/manage`} className="rounded-lg border border-outline p-3">{text.manage}</Link>}{community.role === 'owner' && <button onClick={() => { setSidebar(false); setSettings(true); }} className="rounded-lg border border-outline p-3">{text.settings}</button>}</div>;
+  return <div className="min-w-0 bg-neutral-50">
+    <CommunityHeader community={community} isJoined={community.isJoined} isPending={community.isPending} isJoining={join.isPending || leave.isPending}
+      onJoinLeave={() => run(() => community.isJoined ? leave.mutateAsync() : join.mutateAsync())}
+      onProfilePictureUpdate={file => run(() => picture.mutateAsync(file))} onCoverImageUpdate={file => run(() => cover.mutateAsync(file))}
+      onSettingsOpen={() => setSettings(true)} />
+    <div className="mx-auto max-w-7xl px-3 py-4 sm:px-5"><button onClick={() => setSidebar(true)} className="mb-4 w-full rounded-xl border border-outline bg-neutral-100 p-3 text-start lg:hidden">{text.communityDetails}</button><div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(240px,320px)]"><div className="min-w-0"><CommunityFeed communityId={communityId} /></div><aside className="hidden min-w-0 lg:block">{controls}<CommunityInfo community={community} /></aside></div></div>
+    <Dialog open={sidebar} onClose={() => setSidebar(false)} className="relative z-40 lg:hidden"><div className="fixed inset-0 bg-black/40" aria-hidden="true" /><DialogPanel className="fixed inset-y-0 end-0 w-[min(90vw,360px)] overflow-y-auto bg-neutral-50 p-4"><div className="mb-4 flex items-center justify-between"><DialogTitle className="font-bold">{text.communityDetails}</DialogTitle><button onClick={() => setSidebar(false)} aria-label={text.cancel?.value}>×</button></div>{controls}<CommunityInfo community={community} /></DialogPanel></Dialog>
+    {settings && community.role === 'owner' && <CommunitySettings community={community} onSave={updates => update.mutateAsync(updates)} onClose={() => setSettings(false)} />}
+  </div>;
+}

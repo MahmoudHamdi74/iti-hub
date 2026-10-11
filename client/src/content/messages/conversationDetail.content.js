@@ -3,6 +3,9 @@ import { t, insert } from "intlayer";
 export default {
   key: "conversationDetail",
   content: {
+    reply: t({ en: 'Reply', ar: 'رد' }),
+    replyTo: t({ en: 'Reply to', ar: 'رد على' }),
+    cancelReply: t({ en: 'Cancel reply', ar: 'إلغاء الرد' }),
     // Navigation
     backToMessages: t({ en: "Back to messages", ar: "العودة إلى الرسائل" }),
     conversationInfo: t({ en: "Conversation info", ar: "معلومات المحادثة" }),
