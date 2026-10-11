@@ -33,6 +33,7 @@ export function ConversationDetail() {
   const currentUser = useAuthStore((state) => state.user);
 
   const [messageInput, setMessageInput] = useState('');
+  const [replyTo, setReplyTo] = useState(null);
   const [showGroupManagement, setShowGroupManagement] = useState(false);
   
   // Track if we've already marked messages as seen for this conversation
@@ -96,20 +97,22 @@ export function ConversationDetail() {
   const handleSend = useCallback(({ content, image }) => {
     if (!content && !image) return;
 
-    sendMessage.mutate(
+    return sendMessage.mutateAsync(
       {
         conversationId,
         content,
         image,
+        replyTo,
       },
       {
         onSuccess: () => {
           setMessageInput('');
+          setReplyTo(null);
           stopTyping();
         },
       }
     );
-  }, [conversationId, sendMessage, stopTyping]);
+  }, [conversationId, sendMessage, stopTyping, replyTo]);
 
   // Handle retry failed message - MEMOIZED
   const handleRetryMessage = useCallback((messageId) => {
@@ -146,7 +149,7 @@ export function ConversationDetail() {
   }
 
   // Error state
-  if (conversationError || messagesError) {
+  if (conversationError || (messagesError && messages.length === 0)) {
     return (
       <div className="flex items-center justify-center h-full p-4">
         <ErrorDisplay
@@ -182,7 +185,7 @@ export function ConversationDetail() {
   }
 
   return (
-    <div className=" flex flex-col h-full min-w-0 bg-neutral-100">
+    <div className=" flex flex-col h-full min-h-0 min-w-0 bg-neutral-100">
       {/* Header */}
       <ConversationHeader
         conversation={conversation}
@@ -193,6 +196,8 @@ export function ConversationDetail() {
 
       {/* Messages */}
       <MessageList
+        key={conversationId}
+        onReply={setReplyTo}
         items={messages}
         currentUserId={currentUser?._id}
         conversation={conversation}
@@ -215,6 +220,8 @@ export function ConversationDetail() {
 
       {/* Message Input */}
       <MessageInput
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(null)}
         value={messageInput}
         onChange={setMessageInput}
         onSend={handleSend}

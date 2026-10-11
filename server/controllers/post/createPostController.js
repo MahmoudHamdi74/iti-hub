@@ -32,6 +32,12 @@ const createPost = asyncHandler(async (req, res) => {
   console.log("Creating post with tags:", tags);
   const userId = req.user._id;
   let imageUrls = [];
+  const clientRequestId = req.body.clientRequestId;
+  if (clientRequestId && (typeof clientRequestId !== 'string' || !/^[a-zA-Z0-9-]{8,100}$/.test(clientRequestId))) throw new ValidationError('Invalid request identifier');
+  if (clientRequestId) {
+    const existing = await Post.findOne({ author: userId, clientRequestId });
+    if (existing) return sendCreated(res, { post: await buildPostResponse(existing, userId) }, 'Post created successfully');
+  }
 
 
   // Validate community if provided
@@ -89,15 +95,22 @@ const createPost = asyncHandler(async (req, res) => {
   }
 
   // Create post
-  const post = await Post.create({
+  let post;
+  try { post = await Post.create({
+    ...(clientRequestId ? { clientRequestId } : {}),
     author: userId,
     content: content || '',
     images: imageUrls,
     tags: tags || [],
     community: community || null
   });
+  } catch (err) {
+    if (err.code !== 11000 || !clientRequestId) throw err;
+    post = await Post.findOne({ author: userId, clientRequestId });
+    if (!post) throw err;
+  }
 
-  await syncPostCounts([post]);
+  try { await syncPostCounts([post]); } catch (error) { console.error('Post counter reconciliation failed:', error.code); }
 
   // Populate author details
   await post.populate('author', 'username fullName profilePicture');

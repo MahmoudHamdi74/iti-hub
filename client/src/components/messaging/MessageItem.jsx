@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useRef, useState } from 'react';
 import { UserAvatar } from '@/components/user/UserAvatar';
 import { useIntlayer } from 'react-intlayer';
 import dayjs from 'dayjs';
@@ -31,8 +31,12 @@ export const MessageItem = memo(function MessageItem({
   participants = [],
   onRetry,
   onImageClick,
+  onReply,
 }) {
   const content = useIntlayer('conversationDetail');
+  const touchStart = useRef(null);
+  const [showActions, setShowActions] = useState(false);
+  const reply = () => { onReply?.(message); setShowActions(false); };
 
   if (!message) return null;
 
@@ -112,7 +116,13 @@ export const MessageItem = memo(function MessageItem({
 
   return (
     <div
-      className={`flex items-end gap-2 mb-2 ${
+      data-message-id={message._id}
+      tabIndex={0}
+      onKeyDown={event => { if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) { event.preventDefault(); setShowActions(true); } }}
+      onContextMenu={event => { if (onReply && !message.isTemp) { event.preventDefault(); setShowActions(true); } }}
+      onTouchStart={event => { const t = event.touches[0]; touchStart.current = { x: t.clientX, y: t.clientY }; }}
+      onTouchEnd={event => { const t = event.changedTouches[0], start = touchStart.current; if (start && Math.abs(t.clientX - start.x) > 60 && Math.abs(t.clientY - start.y) < 35 && !message.isTemp) reply(); touchStart.current = null; }}
+      className={`relative flex items-end gap-2 mb-2 ${
         isOwn ? 'flex-row-reverse' : 'flex-row'
       }`}
     >
@@ -127,6 +137,7 @@ export const MessageItem = memo(function MessageItem({
         </div>
       )}
 
+      {showActions && <div className="absolute top-0 end-0 z-10 rounded-lg border border-outline bg-neutral-100 p-2 shadow-lg" onKeyDown={event => { if (event.key === 'Escape') setShowActions(false); }}><button type="button" onClick={reply} className="px-3 py-2 text-neutral-900">{content.reply?.value || 'Reply'}</button><button type="button" className="px-2" aria-label={content.cancelReply?.value || 'Cancel reply'} onClick={() => setShowActions(false)}>×</button></div>}
       {/* Message Bubble */}
       <div
         className={`flex flex-col max-w-[70%] ${
@@ -151,6 +162,7 @@ export const MessageItem = memo(function MessageItem({
             ${status === 'failed' ? 'opacity-50' : ''}
           `}
         >
+          {message.replyTo && <div className="mb-2 border-s-2 border-current ps-2 text-xs opacity-90"><strong>{message.replyTo.sender?.username || content.reply?.value || 'Reply'}</strong><p className="line-clamp-2 break-words">{message.replyTo.content || content.photo?.value}</p></div>}
           {/* Image */}
           {image && (
             <div className="mb-2">

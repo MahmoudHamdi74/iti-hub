@@ -231,7 +231,7 @@ export const NotificationItem = ({ notification, onMarkAsRead, onNavigate, inFli
       aria-label={`${actorText} ${notificationMessage}`}
     >
       {/* Actor Avatar */}
-      <div className="relative shrink-0">
+      <div className="relative w-12 h-12 shrink-0 self-start">
         <img
           src={actor?.profilePicture || '/default-avatar.png'}
           alt={actor?.fullName || actor?.username || 'User'}
@@ -256,10 +256,10 @@ export const NotificationItem = ({ notification, onMarkAsRead, onNavigate, inFli
       {/* Notification Content */}
       <div className="flex-1 min-w-0">
         {/* Actor Names and Action */}
-        <p className="text-body-2">
-          <span className="font-semibold text-primary-700">{actorText}</span>
+        <p className="text-body-2 line-clamp-2 break-words">
+          <span className="font-semibold text-primary-700">{truncateText(String(actorText), 60)}</span>
           {' '}
-          <span className="text-neutral-600">{notificationMessage}</span>
+          <span className="text-neutral-600">{truncateText(String(notificationMessage), 120)}</span>
         </p>
 
         {/* Post Preview (if applicable) */}

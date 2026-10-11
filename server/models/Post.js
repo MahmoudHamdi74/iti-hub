@@ -8,6 +8,7 @@ const {
 
 const PostSchema = new mongoose.Schema(
   {
+    clientRequestId: { type: String },
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -119,6 +120,7 @@ PostSchema.pre("validate", function (next) {
 
 // Indexes for efficient querying
 PostSchema.index({ author: 1, createdAt: -1 });
+PostSchema.index({ author: 1, clientRequestId: 1 }, { unique: true, partialFilterExpression: { clientRequestId: { $type: 'string' } } });
 PostSchema.index({ community: 1, createdAt: -1 });
 PostSchema.index({ tags: 1, createdAt: -1 });
 PostSchema.index({ createdAt: -1 });

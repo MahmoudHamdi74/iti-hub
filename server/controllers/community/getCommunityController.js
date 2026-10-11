@@ -48,7 +48,7 @@ const getCommunity = asyncHandler(async (req, res) => {
     postCount: community.postCount,
     owners: community.owners,
     moderators: community.moderators,
-    members: members.map(m => ({
+    members: members.filter(m => m.user).map(m => ({
       _id: m.user._id,
       username: m.user.username,
       fullName: m.user.fullName,

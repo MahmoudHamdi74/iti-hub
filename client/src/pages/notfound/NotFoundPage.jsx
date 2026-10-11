@@ -16,7 +16,7 @@ export default function NotFoundPage() {
   return (
     <div
       className="
-        min-h-screen flex items-center justify-center px-4 relative
+        min-h-[65vh] flex items-center justify-center px-4 relative
         from-primary-100 via-secondary-50 to-neutral-50
         animated-gradient
       "
@@ -50,7 +50,7 @@ export default function NotFoundPage() {
         </h1>
 
         {/* Title */}
-        <h2 className="text-heading-3 text-neutral-800mb-2">
+        <h2 className="text-heading-3 text-neutral-800 mb-2">
           {title}
         </h2>
 
@@ -82,7 +82,7 @@ export default function NotFoundPage() {
               glow-hover flex items-center justify-center gap-2
               px-6 py-3 rounded-xl
               border border-neutral-300
-              text-neutral-700text-button
+              text-neutral-700 text-button
               hover:bg-neutral-100 
               hover:scale-105
               transition-all duration-300

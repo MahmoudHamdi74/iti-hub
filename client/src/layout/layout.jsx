@@ -30,6 +30,7 @@ export default function Layout() {
   const [compose, setCompose] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const { pathname } = useLocation();
+  const inMessages = pathname.startsWith('/messages');
   useEffect(() => { setMenuOpen(false); }, [pathname]);
   const { requireAuth } = useRequireAuth();
   useEffect(() => {
@@ -71,12 +72,12 @@ export default function Layout() {
         <button onClick={() => requireAuth(() => setCompose(true))} className="my-3 flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary-600 p-3 font-bold text-white"><HiPlus className="h-6 w-6" /><span className="hidden xl:inline">{content.post}</span></button>
         {isAuthenticated ? <AccountMenu /> : <NavLink to="/login" className="rounded-full border border-outline px-2 py-3 text-center text-sm font-semibold">{content.login}</NavLink>}
       </aside>
-      <main className="min-w-0 flex-1 pb-[calc(80px+env(safe-area-inset-bottom))] lg:pb-0">
+      <main className={`min-w-0 flex-1 ${inMessages ? 'pb-0' : 'pb-[calc(80px+env(safe-area-inset-bottom))] lg:pb-0'}`}>
         {isAuthenticated && <><GlobalNotificationHandler /><GlobalMessagingHandler /></>}
         <Outlet />
       </main>
     </div>
-    <button onClick={() => requireAuth(() => setCompose(true))} aria-label={content.post?.value || 'Post'} className="fixed bottom-[calc(20px+env(safe-area-inset-bottom))] end-5 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 text-white shadow-elevation-3 lg:hidden"><HiPlus className="h-6 w-6" /></button>
+    {!inMessages && <button onClick={() => requireAuth(() => setCompose(true))} aria-label={content.post?.value || 'Post'} className="fixed bottom-[calc(20px+env(safe-area-inset-bottom))] end-5 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-primary-600 text-white shadow-elevation-3 lg:hidden"><HiPlus className="h-6 w-6" /></button>}
     <PostComposerModal isOpen={compose} onClose={() => setCompose(false)} />
   </div>;
 }

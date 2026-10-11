@@ -38,7 +38,7 @@ import EventsListController from "@pages/events/EventsListController";
 import SettingsController from "@pages/settings/SettingsController";
 
 // Placeholder components for routes not yet implemented
-const NotFoundPage = () => <div>404 - Page Not Found</div>;
+import NotFoundPage from '@pages/notfound/NotFoundPage';
 
 // Redirect legacy /courses/tracks/:trackId URLs to the corrected /tracks/:trackId
 const LegacyTrackDetailRedirect = () => {

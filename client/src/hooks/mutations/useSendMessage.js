@@ -27,13 +27,14 @@ export const useSendMessage = () => {
   const currentUser = useAuthStore((state) => state.user);
 
   return useMutation({
-    mutationFn: async ({ conversationId, content, image }) => {
+    mutationFn: async ({ conversationId, content, image, replyTo }) => {
       // Validate at least one field is provided
       if (!content && !image) {
         throw new Error('Either content or image must be provided');
       }
 
       const formData = new FormData();
+      if (replyTo?._id) formData.append('replyTo', replyTo._id);
       
       if (content) {
         formData.append('content', content);
@@ -47,6 +48,7 @@ export const useSendMessage = () => {
         `/conversations/${conversationId}/messages`,
         formData,
         {
+          timeout: 60000,
           headers: {
             'Content-Type': 'multipart/form-data',
           },
@@ -61,7 +63,7 @@ export const useSendMessage = () => {
     },
     
     // Optimistic update
-    onMutate: async ({ conversationId, content, image }) => {
+    onMutate: async ({ conversationId, content, image, replyTo }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['messages', conversationId] });
 
@@ -72,6 +74,7 @@ export const useSendMessage = () => {
       const tempMessage = {
         _id: `temp-${Date.now()}`,
         content,
+        replyTo,
         image: image ? URL.createObjectURL(image) : null,
         sender: {
           _id: currentUser._id,

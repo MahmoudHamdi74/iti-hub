@@ -26,6 +26,8 @@ export function MessageInput({
   onChange,
   onSend,
   onTyping,
+  replyTo,
+  onCancelReply,
   disabled = false,
   sending = false,
 }) {
@@ -51,7 +53,7 @@ export function MessageInput({
         textareaRef.current.focus();
       }
       prevSendingRef.current = sending;
-    }, [sending]);
+    }, [sending, value]);
 
   // Handle image selection
   const handleImageSelect = (e) => {
@@ -90,11 +92,11 @@ export function MessageInput({
   };
 
   // Handle send
-  const handleSend = () => {
+  const handleSend = async () => {
     if (disabled || sending) return;
     if (!value.trim() && !selectedImage) return;
 
-    onSend({
+    try { await onSend({
       content: value.trim(),
       image: selectedImage,
     });
@@ -102,6 +104,7 @@ export function MessageInput({
     // Reset state
     onChange('');
     handleRemoveImage();
+    } catch { /* Keep draft after a failed send. */ }
   };
 
   // Handle key press
@@ -121,7 +124,8 @@ export function MessageInput({
   const canSend = (value.trim() || selectedImage) && !disabled && !sending;
 
   return (
-    <div className="border-t border-outline bg-neutral-100">
+    <div className="shrink-0 border-t border-outline bg-neutral-100">
+      {replyTo && <div className="flex items-center gap-2 px-4 pt-3 text-sm" role="status"><div className="min-w-0 flex-1 border-s-2 border-primary-500 ps-3"><strong>{content.replyTo?.value || 'Reply to'} {replyTo.sender?.username}</strong><p className="truncate">{replyTo.content || content.photo?.value}</p></div><button type="button" aria-label={content.cancelReply?.value || 'Cancel reply'} onClick={onCancelReply}><HiOutlineXMark className="h-5 w-5" /></button></div>}
       {/* Image Preview */}
       {imagePreview && (
         <div className="px-4 pt-3 pb-2">

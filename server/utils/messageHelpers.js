@@ -147,6 +147,7 @@ function formatMessage(message) {
     _id: message._id,
     conversation: message.conversation,
     content: message.content,
+    replyTo: message.replyTo || null,
     image: message.image,
     status: message.status,
     seenBy: message.seenBy || [],

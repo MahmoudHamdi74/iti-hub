@@ -8,7 +8,8 @@ export const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 10 * 60 * 1000, // 10 minutes (previously cacheTime)
-      retry: 1,
+      networkMode: 'always',
+      retry: (count, error) => count < 1 && !!error.response && error.response.status >= 500,
       refetchOnWindowFocus: false,
       onError: (error) => {
         // Check for token expiration errors
@@ -20,6 +21,7 @@ export const queryClient = new QueryClient({
       },
     },
     mutations: {
+      networkMode: 'always',
       retry: 0,
       onError: (error) => {
         // Check for token expiration errors

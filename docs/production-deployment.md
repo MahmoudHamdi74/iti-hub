@@ -92,3 +92,33 @@ remaining grouped comments, legacy reply targets, repost deletion, permission ch
 and two-device notification removal are covered. Frontend menu actions and unread
 badge refresh passed with the feature suite; production build passed. Deploy both
 client and server for the complete fix. No production records were edited locally.
+
+## Paged feeds, conversations and failure recovery
+
+Conversations open on the newest 20 messages. Scrolling up requests older pages
+without moving the visible message; tied timestamps use an ID cursor. Replies
+work through a desktop context menu or a horizontal mobile swipe and are validated
+against the same conversation on the server. Feed and notification sentinels load
+the next bounded page only when reached. Notification text is capped and avatars
+keep a fixed width. Following and trending use the same available width as home.
+
+Community owners can edit the name and description. Mobile details, members and
+management live in a drawer; create/join/leave remain in the main view. Renaming
+invalidates embedded community names in feed caches. Missing communities and
+unknown routes render the existing Not Found page, while temporary failures offer
+retry. Offline requests settle as errors instead of remaining paused indefinitely.
+
+Post creation uses an author-scoped clientRequestId and a partial unique index.
+After a lost upload response the client checks for the saved post, and retries
+reuse the same ID. Failed publishing keeps the mounted draft; a confirmed success
+clears it. This is not persistent draft storage across a browser reload.
+
+Deploy the server (including its new Message.replyTo field and Post index) and
+client together. PR #6 must be merged before a main-branch deployment includes
+these changes or the earlier count/repost fixes. Production data was not modified.
+
+Validation: 46 client tests, 96 translation checks, isolated MongoDB lifecycle,
+visibility, realtime and usability tests, and a production build passed. Chrome
+production-preview tests at 320, 390 and 1440 pixels covered message positioning,
+history pagination, reply submission, community editing, feed/notification paging,
+404 states and a dismissible offline composer without runtime exceptions.

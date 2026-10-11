@@ -18,6 +18,7 @@ test('blocks hide posts and reposts across cached feeds, profiles, saved posts, 
   app.get('/community/:communityId/feed', require('../middlewares/checkAuth').optionalAuth, require('../controllers/community/getCommunityFeedController'));
   app.use(require('../middlewares/errorHandler').errorHandler);
   const User = require('../models/User'), Post = require('../models/Post'), PostSave = require('../models/PostSave');
+  await Post.init(); // Text-search tests require indexes to finish building.
   const [viewer, blocked, friend] = await User.create(['viewer', 'blocked', 'friend'].map(name => ({ username: name, fullName: name, email: `${name}@example.test`, password: 'TestPassword123!' })));
   const community = new mongoose.Types.ObjectId();
   const hidden = await Post.create({ author: blocked._id, content: 'needle blocked post', community });

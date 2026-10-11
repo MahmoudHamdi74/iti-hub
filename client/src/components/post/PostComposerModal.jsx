@@ -6,7 +6,6 @@ import { toast } from 'react-hot-toast';
 import useCreatePost from '@hooks/mutations/useCreatePost';
 import useUpdatePost from '@hooks/mutations/useUpdatePost';
 import useGeneratePost from '@hooks/mutations/useGeneratePost';
-import  Button from "../common/Button";
 import PostTextarea from './PostTextarea';
 import ImageUploadPreview from './ImageUploadPreview';
 import TagSelector from './TagSelector';
@@ -119,7 +118,7 @@ export default function PostComposerModal({ isOpen, onClose, initialPost = null,
         {
           onSuccess: () => {
             toast.success(content.updateSuccess);
-            handleClose();
+            resetAndClose();
           },
           onError: (error) => {
             const errorMessage = error?.response?.data?.error?.message || content.updateFailed;
@@ -139,10 +138,10 @@ export default function PostComposerModal({ isOpen, onClose, initialPost = null,
       createPost.mutate(postData, {
         onSuccess: () => {
           toast.success(content.postCreated);
-          handleClose();
+          resetAndClose();
         },
         onError: (error) => {
-          const errorMessage = error?.response?.data?.error?.message || content.postFailed;
+          const errorMessage = error.deliveryUncertain ? content.deliveryUncertain : error?.response?.data?.error?.message || content.postFailed;
           toast.error(errorMessage);
         },
       });
@@ -150,8 +149,11 @@ export default function PostComposerModal({ isOpen, onClose, initialPost = null,
   };
 
   const handleClose = () => {
-    if (createPost.isPending || updatePost.isPending || generatePost.isPending) return;
-    
+    if (createPost.isPending || updatePost.isPending || generatePost.isPending || createPost.isError || updatePost.isError) { onClose(); return; }
+    resetAndClose();
+  };
+
+  const resetAndClose = () => {
     // Reset form
     setPostContent('');
     setImages([]);
@@ -174,7 +176,6 @@ export default function PostComposerModal({ isOpen, onClose, initialPost = null,
             </DialogTitle>
             <button
               onClick={handleClose}
-              disabled={createPost.isPending || updatePost.isPending}
               className="p-1 rounded-full hover:bg-neutral-100 transition-colors disabled:opacity-50"
               aria-label={content.cancel.value}
             >

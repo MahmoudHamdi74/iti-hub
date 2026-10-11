@@ -23,7 +23,7 @@ export default function MessagesShell() {
   const hasConversation = Boolean(conversationId);
 
   return (
-    <div className="h-full flex bg-neutral-50">
+    <div className="h-[calc(100dvh-7.5rem)] lg:h-dvh min-h-0 flex overflow-hidden bg-neutral-50">
       {/* Left panel — conversations list (always visible on desktop) */}
       <div
         className={`w-full lg:w-96 lg:min-w-96 h-full overflow-hidden ltr:border-r rtl:border-l border-outline ${

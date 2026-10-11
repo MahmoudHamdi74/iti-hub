@@ -22,6 +22,7 @@ export const useJoinCommunity = (communityId) => {
     onSuccess: () => {
       // Invalidate community details to refetch with updated join/pending status
       queryClient.invalidateQueries({ queryKey: ['community', communityId] });
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
       queryClient.invalidateQueries({ queryKey: ['community', 'join-requests'] });
     },
   });
@@ -43,6 +44,7 @@ export const useLeaveCommunity = (communityId) => {
     onSuccess: () => {
       // Invalidate community details to refetch with updated join status
       queryClient.invalidateQueries({ queryKey: ['community', communityId] });
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
     },
   });
 };
@@ -62,6 +64,8 @@ export const useUpdateCommunity = (communityId) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['community', communityId] });
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
     },
   });
 };
@@ -87,6 +91,7 @@ export const useUpdateCommunityProfilePicture = (communityId) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['community', communityId] });
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
     },
   });
 };
@@ -112,6 +117,7 @@ export const useUpdateCommunityCoverImage = (communityId) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['community', communityId] });
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
     },
   });
 };
@@ -131,6 +137,7 @@ export const useAddModerator = (communityId) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['community', communityId] });
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
     },
   });
 };
@@ -150,6 +157,7 @@ export const useRemoveModerator = (communityId) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['community', communityId] });
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
       queryClient.invalidateQueries({ queryKey: ['community', communityId, 'members'] });
     },
   });
@@ -170,6 +178,7 @@ export const useKickMember = (communityId) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['community', communityId] });
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
       queryClient.invalidateQueries({ queryKey: ['community', communityId, 'members'] });
     },
   });
@@ -193,6 +202,7 @@ export const useDecideCommunityJoinRequest = (communityId) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['community', 'join-requests'] });
       queryClient.invalidateQueries({ queryKey: ['community', communityId] });
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
       queryClient.invalidateQueries({ queryKey: ['community', communityId, 'members'] });
     },
   });
@@ -212,6 +222,7 @@ export const useCancelCommunityJoinRequest = (communityId) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['community', 'join-requests'] });
       queryClient.invalidateQueries({ queryKey: ['community', communityId] });
+      queryClient.invalidateQueries({ queryKey: ['communities'] });
     },
   });
 };

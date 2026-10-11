@@ -26,11 +26,11 @@ const CommunityHeader = ({
   onJoinLeave,
   onProfilePictureUpdate,
   onCoverImageUpdate,
+  onSettingsOpen,
 }) => {
   const  content  = useIntlayer('community');
   const navigate = useNavigate();
   const { requireAuth } = useRequireAuth();
-  const [showSettings, setShowSettings] = useState(false);
   const [showComposer, setShowComposer] = useState(false);
   const profileInputRef = useRef(null);
   const coverInputRef = useRef(null);
@@ -107,8 +107,8 @@ const CommunityHeader = ({
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex flex-col md:flex-row items-start md:items-end gap-4 pb-6">
           {/* Profile Picture */}
-          <div className="relative -mt-16 md:-mt-20">
-            <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-neutral-50 shadow-elevation-3 overflow-hidden bg-primary-100">
+          <div className="relative -mt-12 md:-mt-20">
+            <div className="relative w-24 h-24 md:w-40 md:h-40 rounded-full border-4 border-neutral-50 shadow-elevation-3 overflow-hidden bg-primary-100">
               {community.profilePicture ? (
                 <img
                   src={community.profilePicture}
@@ -149,7 +149,7 @@ const CommunityHeader = ({
           <div className="w-full min-w-0 flex-1 flex flex-col md:flex-row md:flex-wrap md:items-end justify-between gap-4 pt-4 md:pt-0">
             {/* Community Name & Stats */}
             <div>
-              <h1 className="text-heading-2 text-neutral-900 font-bold mb-2 break-words">
+              <h1 className="break-words text-heading-2 text-neutral-900 font-bold mb-2 break-words">
                 {community.name}
               </h1>
               <div className="flex items-center gap-4 text-body-2 text-neutral-600">
@@ -206,6 +206,7 @@ const CommunityHeader = ({
               )}
               {isJoined && (
                 <button
+                  disabled={isJoining}
                   onClick={handleJoinLeave}
                   className="px-6 py-2.5 rounded-lg text-button font-semibold bg-neutral-200 text-neutral-700 hover:bg-neutral-300 transition-all shadow-elevation-1 hover:shadow-elevation-2 flex items-center gap-2"
                 >
@@ -219,18 +220,18 @@ const CommunityHeader = ({
                 <>
                   <button
                     onClick={() => navigate(`/community/${community._id}/manage`)}
-                    className="px-6 py-2.5 rounded-lg text-button font-semibold bg-secondary-600 text-white hover:bg-secondary-700 transition-all shadow-elevation-1 hover:shadow-elevation-2 flex items-center gap-2"
+                    className="hidden lg:flex px-6 py-2.5 rounded-lg text-button font-semibold bg-secondary-600 text-white hover:bg-secondary-700 transition-all shadow-elevation-1 hover:shadow-elevation-2 flex items-center gap-2"
                   >
                     <FaShieldAlt size={18} />
                     <span>{content.manage}</span>
                   </button>
-                  <button
-                    onClick={() => setShowSettings(!showSettings)}
-                    className="px-6 py-2.5 rounded-lg text-button font-semibold bg-neutral-200 text-neutral-700 hover:bg-neutral-300 transition-all shadow-elevation-1 hover:shadow-elevation-2 flex items-center gap-2"
+                  {isOwner && <button
+                    onClick={onSettingsOpen}
+                    className="hidden lg:flex px-6 py-2.5 rounded-lg text-button font-semibold bg-neutral-200 text-neutral-700 hover:bg-neutral-300 transition-all shadow-elevation-1 hover:shadow-elevation-2 flex items-center gap-2"
                   >
                     <FiSettings size={18} />
                     <span>{content.settings || 'Settings'}</span>
-                  </button>
+                  </button>}
                 </>
               )}
             </div>
