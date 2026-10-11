@@ -55,6 +55,22 @@ test('paged conversations, replies, community settings and repeat-safe publishin
     assert.equal(lookup.body.data.post._id,first.body.data.post._id);
     await request(app).get('/posts/requests/test-repeat-request-123').set('Authorization',auth(member)).expect(404);
   });
+  await t.test('community deletion rejects members, cascades posts and corrects counts',async()=>{
+    const community=await Community.create({name:'Delete me',description:'Description',owners:[owner._id],tags:[require('../utils/constants').COMMUNITY_TAGS[0]]});
+    const post=await Post.create({author:owner._id,community:community._id,content:'Delete post'});
+    const Notification=require('../models/Notification');
+    await Notification.create({recipient:member._id,actor:owner._id,type:'like',target:post._id,targetModel:'Post',groupingKey:post._id});
+    await User.updateOne({_id:owner._id},{$set:{postsCount:-2}});
+    await request(app).delete('/communities/'+community.id).set('Authorization',auth(member)).expect(403);
+    await request(app).delete('/communities/'+community.id).set('Authorization',auth(owner)).expect(200);
+    assert.equal(await Post.countDocuments({_id:post._id}),0);
+    assert.equal(await Notification.countDocuments({target:post._id}),0);
+    assert.equal((await User.findById(owner._id)).postsCount,await Post.countDocuments({author:owner._id}));
+    await request(app).get('/communities/'+community.id).expect(404);
+    const second=await Community.create({name:'Admin delete',description:'Description',owners:[owner._id],tags:[require('../utils/constants').COMMUNITY_TAGS[0]]});
+    await User.updateOne({_id:outsider._id},{$set:{role:'admin'}});
+    await request(app).delete('/communities/'+second.id).set('Authorization',auth(outsider)).expect(200);
+  });
   await t.test('feed pages stay bounded and distinct',async()=>{
     await Post.insertMany(Array.from({length:45},(_,i)=>({author:owner._id,content:'Feed '+i})));
     const pages=await Promise.all([1,2].map(page=>request(app).get('/feed/home').query({page,limit:20}).expect(200)));

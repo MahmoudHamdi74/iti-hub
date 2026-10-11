@@ -3,6 +3,8 @@ import { t } from 'intlayer';
 export default {
   key: 'community',
   content: {
+    deleteCommunity: t({ en: 'Delete community', ar: 'حذف المجتمع' }),
+    deleteWarning: t({ en: 'This permanently deletes the community, its posts, comments and related notifications. This cannot be undone.', ar: 'سيتم حذف المجتمع ومنشوراته وتعليقاته والإشعارات المرتبطة بها نهائيًا. لا يمكن التراجع عن الحذف.' }),
     settings: t({ en: 'Settings', ar: 'الإعدادات' }),
     communityName: t({ en: 'Community name', ar: 'اسم المجتمع' }),
     communityDetails: t({ en: 'About, members and management', ar: 'عن المجتمع والأعضاء والإدارة' }),

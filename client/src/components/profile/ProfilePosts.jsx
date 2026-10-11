@@ -54,7 +54,7 @@ const ProfilePosts = ({ userId, isOwnProfile }) => {
       {/* Posts Header */}
       <div className="bg-neutral-50 shadow-sm rounded-lg px-6 py-4">
         <h2 className="text-lg font-semibold text-neutral-900">
-          {content.posts} ({posts.length})
+          {content.posts} ({postsData?.data?.pagination?.total ?? posts.length})
         </h2>
       </div>
 
