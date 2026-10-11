@@ -13,7 +13,7 @@ const api=vi.hoisted(()=>({post:vi.fn(),get:vi.fn()}));
 vi.mock('@lib/api',()=>({default:api}));
 vi.mock('@store/auth',()=>({useAuthStore:select=>select({user:{_id:'me'}})}));
 vi.mock('../src/utils/notificationHelpers',()=>({formatNotificationTime:()=> 'now'}));
-vi.mock('react-intlayer',()=>({useLocale:()=>({locale:'en'}),useIntlayer:()=>({reply:{value:'Reply'},replyTo:{value:'Reply to'},cancelReply:{value:'Cancel reply'},photo:{value:'Photo'},delivered:{value:'Delivered'},messageInputPlaceholder:{value:'Message'},sendButton:{value:'Send'},attachImage:{value:'Attach image'},settings:'Settings',communityName:'Name',aboutCommunity:'About',savee:'Save',cancel:{value:'Close'},unknownUser:{value:'Unknown'}})}));
+vi.mock('react-intlayer',()=>({useLocale:()=>({locale:'en'}),useIntlayer:()=>({reply:{value:'Reply'},replyTo:{value:'Reply to'},cancelReply:{value:'Cancel reply'},photo:{value:'Photo'},delivered:{value:'Delivered'},messageInputPlaceholder:{value:'Message'},sendButton:{value:'Send'},attachImage:{value:'Attach image'},settings:'Settings',communityName:'Name',aboutCommunity:'About',savee:'Save',cancel:{value:'Close'},unknownUser:{value:'Unknown'},oneOther:{value:'one other'},notificationTypes:{like:{en:()=>({value:'liked your post'})}},actorGroupingTwo:{en:({actor1})=>({value:actor1+' and one other'})}})}));
 afterEach(()=>{cleanup();vi.clearAllMocks();vi.unstubAllGlobals();});
 test('observer mounts after loader and does not drain pages on rerenders',async()=>{
  const callbacks=[];vi.stubGlobal('IntersectionObserver',class{constructor(cb){callbacks.push(cb);}observe(){}disconnect(){}});
@@ -58,4 +58,12 @@ test('long notification names are capped and its icon keeps a fixed box',()=>{
  const {container}=render(<MemoryRouter><NotificationItem notification={notification}/></MemoryRouter>);
  expect(container.querySelector('p span').textContent.length).toBeLessThanOrEqual(63);
  expect(container.querySelector('.relative.shrink-0').className).toContain('h-12');
+});
+
+test('notification translations unwrap values for text and accessible labels',()=>{
+ const {container}=render(<MemoryRouter><NotificationItem notification={{_id:'n',type:'like',actor:{fullName:'Alice'},actorCount:2,isRead:true}}/></MemoryRouter>);
+ expect(container.textContent).toContain('Alice and one other');
+ expect(container.textContent).toContain('liked your post');
+ expect(container.innerHTML).not.toContain('[object Object]');
+ expect(screen.getByRole('button').getAttribute('aria-label')).toBe('Alice and one other liked your post');
 });

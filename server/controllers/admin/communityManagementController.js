@@ -4,7 +4,6 @@
  */
 const Community = require('../../models/Community');
 const Post = require('../../models/Post');
-const Comment = require('../../models/Comment');
 const CommunityMember = require('../../models/CommunityMember');
 const User = require('../../models/User');
 const { sendSuccess } = require('../../utils/responseHelpers');
@@ -114,26 +113,27 @@ const deleteCommunity = async (req, res, next) => {
       });
     }
 
-    // Get all posts in this community
-    const communityPosts = await Post.find({ community: communityId }).select('_id');
-    const postIds = communityPosts.map(p => p._id);
-
-    // Delete all comments on community posts
-    const deletedComments = await Comment.deleteMany({ post: { $in: postIds } });
-
-    // Delete all posts in community
-    const deletedPosts = await Post.deleteMany({ community: communityId });
+    const { deletePostData, deleteCommunityAlerts } = require('../../utils/postLifecycle');
+    const posts = await Post.find({ community: communityId });
+    let deletedComments = 0;
+    for (const post of posts) {
+      if (await Post.exists({ _id: post._id })) deletedComments += (await deletePostData(post)).deletedComments;
+    }
+    await require('../../models/CommunityJoinRequest').deleteMany({ community: communityId });
+    require('../../utils/feedCache').clearAll();
 
     // Delete all memberships
     const removedMembers = await CommunityMember.deleteMany({ community: communityId });
+
+    await deleteCommunityAlerts(communityId);
 
     // Delete community
     await community.deleteOne();
 
     return sendSuccess(res, {
       deletedCommunity: communityId,
-      deletedPosts: deletedPosts.deletedCount,
-      deletedComments: deletedComments.deletedCount,
+      deletedPosts: posts.length,
+      deletedComments,
       removedMembers: removedMembers.deletedCount
     }, 'Community and all associated content deleted successfully');
   } catch (error) {

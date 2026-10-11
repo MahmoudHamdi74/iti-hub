@@ -112,4 +112,10 @@ async function deletePostData(post) {
   return { deletedComments: commentIds.length };
 }
 
-module.exports = { syncPostCounts, deletePostData, deleteCommentData };
+async function deleteCommunityAlerts(communityId) {
+  const recipients = new Set();
+  await removeNotifications({ targetModel: 'Community', target: communityId }, recipients);
+  await notifyRecipients(recipients);
+}
+
+module.exports = { deleteCommunityAlerts, syncPostCounts, deletePostData, deleteCommentData };

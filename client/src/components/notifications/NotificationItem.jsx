@@ -135,10 +135,10 @@ export const NotificationItem = ({ notification, onMarkAsRead, onNavigate, inFli
   );
 
   // Construct actor display text
-  const actorText = useMemo(() => {
-    if (!actor) return content.unknownUser;
+  const actorNode = useMemo(() => {
+    if (!actor) return content.unknownUser?.value || '';
     
-    const actorName = actor.fullName || actor.username || content.unknownUser;
+    const actorName = actor.fullName || actor.username || content.unknownUser?.value;
     
     if (actorCount === 1) {
       return actorName;
@@ -158,7 +158,7 @@ export const NotificationItem = ({ notification, onMarkAsRead, onNavigate, inFli
   }, [actor, actorCount, content, locale]);
 
   // Construct notification message using i18n
-  const notificationMessage = useMemo(() => {
+  const messageNode = useMemo(() => {
     const notificationTypes = content.notificationTypes;
     
     if (!notificationTypes) {
@@ -196,6 +196,11 @@ export const NotificationItem = ({ notification, onMarkAsRead, onNavigate, inFli
         return content.defaultInteraction;
     }
   }, [type, content, locale]);
+
+  // Intlayer returns React node proxies; String(node) produces [object Object].
+  const plainText = node => typeof node === 'string' ? node : typeof node?.value === 'string' ? node.value : '';
+  const actorText = plainText(actorNode);
+  const notificationMessage = plainText(messageNode);
 
   // Truncate post content preview
   const truncateText = (text, maxLength = 50) => {
@@ -257,9 +262,9 @@ export const NotificationItem = ({ notification, onMarkAsRead, onNavigate, inFli
       <div className="flex-1 min-w-0">
         {/* Actor Names and Action */}
         <p className="text-body-2 line-clamp-2 break-words">
-          <span className="font-semibold text-primary-700">{truncateText(String(actorText), 60)}</span>
+          <span className="font-semibold text-primary-700">{truncateText(actorText, 60)}</span>
           {' '}
-          <span className="text-neutral-600">{truncateText(String(notificationMessage), 120)}</span>
+          <span className="text-neutral-600">{truncateText(notificationMessage, 120)}</span>
         </p>
 
         {/* Post Preview (if applicable) */}

@@ -125,4 +125,6 @@ communityRoutes.delete('/:id/members/:userId', checkAuth, checkModeratorAccess, 
  */
 communityRoutes.get('/:communityId/feed', optionalAuth, getCommunityFeed);
 
+communityRoutes.delete('/:id', checkAuth, require('../controllers/community/deleteCommunityController'));
+
 module.exports = communityRoutes;

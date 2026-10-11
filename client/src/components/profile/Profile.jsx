@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useAuthStore } from '@store/auth';
-import { useGetUserProfile } from '@hooks/queries/useUserQueries';
+import { useGetUserProfile, useGetUserPosts } from '@hooks/queries/useUserQueries';
 import { useIntlayer } from 'react-intlayer';
 import ProfileHeader from './ProfileHeader';
 import ProfileInfo from './ProfileInfo';
@@ -14,6 +14,9 @@ const Profile = () => {
 
   // جلب بيانات المستخدم
   const { data: profileData, isLoading, error } = useGetUserProfile(username);
+
+  const { data: postsData } = useGetUserPosts(profileData?.data?.isBlocked ? undefined : profileData?.data?._id);
+  const total = postsData?.data?.pagination?.total;
 
   // Loading State
   if (isLoading) {
@@ -103,7 +106,7 @@ const Profile = () => {
           // Only show Profile Info and Posts if user is NOT blocked
           <>
             {/* Profile Info Section */}
-            <ProfileInfo profile={profile} />
+            <ProfileInfo profile={{ ...profile, postsCount: Number.isFinite(total) ? total : undefined }} />
 
             {/* Profile Posts Section */}
             <ProfilePosts 
